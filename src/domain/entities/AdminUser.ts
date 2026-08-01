@@ -4,6 +4,8 @@
 export interface AdminUser {
   id: string;
   email: string;
+  name: string;
+  role: string;
   password?: string;
   created_at?: string;
 }

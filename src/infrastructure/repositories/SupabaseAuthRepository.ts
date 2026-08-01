@@ -42,6 +42,8 @@ export class SupabaseAuthRepository implements AuthRepository {
       const user: AdminUser = {
         id: String(data.id),
         email: data.email,
+        name: String(data.name ?? ""),
+        role: String(data.role ?? ""),
         created_at: data.created_at,
       };
 
