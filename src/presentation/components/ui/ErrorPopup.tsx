@@ -5,12 +5,18 @@ interface ErrorPopupProps {
   visible: boolean;
   /** Callback saat popup ditutup. */
   onClose: () => void;
+  /** Teks pesan error yang ditampilkan. */
+  message?: string;
 }
 
 /**
- * Popup error login dengan ikon silang merah dan teks "Gagal Login".
+ * Popup error dengan ikon silang merah dan pesan yang dapat disesuaikan.
  */
-export default function ErrorPopup({ visible, onClose }: ErrorPopupProps) {
+export default function ErrorPopup({
+  visible,
+  onClose,
+  message = "Gagal Login",
+}: ErrorPopupProps) {
   if (!visible) {
     return null;
   }
@@ -55,7 +61,7 @@ export default function ErrorPopup({ visible, onClose }: ErrorPopupProps) {
             </svg>
           </div>
           <p id="login-error-title" className="text-lg font-semibold text-black">
-            Gagal Login
+            {message}
           </p>
         </div>
       </div>

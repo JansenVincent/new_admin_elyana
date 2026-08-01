@@ -1,17 +1,8 @@
-"use client";
+import { redirect } from "next/navigation";
 
 /**
- * Halaman manajemen product.
+ * Redirect /product ke sub-menu Input Stock karena Product tidak memiliki halaman sendiri.
  */
 export default function ProductPage() {
-  return (
-    <section className="mx-auto max-w-4xl">
-      <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-900">Product</h2>
-        <p className="mt-2 text-slate-600">
-          Halaman product. Konten product dapat ditambahkan di sini.
-        </p>
-      </div>
-    </section>
-  );
+  redirect("/product/input-stock");
 }

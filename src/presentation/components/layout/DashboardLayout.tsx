@@ -6,16 +6,20 @@ import { useEffect, useId, useState } from "react";
 import { authService } from "@/application/services/AuthService";
 import { useAuthSession } from "@/shared/hooks/useAuthSession";
 
-interface NavItem {
+interface NavSubItem {
   label: string;
   href: string;
+}
+
+interface NavItem {
+  label: string;
   icon: React.ReactNode;
+  children: NavSubItem[];
 }
 
 const navItems: NavItem[] = [
   {
     label: "Product",
-    href: "/product",
     icon: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -33,6 +37,7 @@ const navItems: NavItem[] = [
         />
       </svg>
     ),
+    children: [{ label: "Input Stock", href: "/product/input-stock" }],
   },
 ];
 
@@ -87,6 +92,27 @@ function CloseIcon() {
 }
 
 /**
+ * Ikon chevron untuk indikator expand/collapse menu.
+ */
+function ChevronIcon({ expanded }: { expanded: boolean }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      className={`h-4 w-4 shrink-0 transition-transform duration-200 ${
+        expanded ? "rotate-180" : ""
+      }`}
+      aria-hidden="true"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+    </svg>
+  );
+}
+
+/**
  * Layout dashboard dengan header, sidebar menu responsif, dan area konten utama.
  * Di mobile, sidebar menjadi drawer yang dapat dibuka/ditutup.
  */
@@ -94,6 +120,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname();
   const { user, isLoading } = useAuthSession();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({
+    Product: pathname.startsWith("/product"),
+  });
   const sidebarId = useId();
 
   /**
@@ -111,6 +140,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   /**
+   * Membuka atau menutup sub-menu pada item navigasi.
+   */
+  function toggleSubmenu(label: string) {
+    setExpandedMenus((prev) => ({
+      ...prev,
+      [label]: !prev[label],
+    }));
+  }
+
+  /**
    * Menangani logout dan kembali ke halaman login.
    */
   function handleLogout() {
@@ -120,6 +159,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   useEffect(() => {
     closeSidebar();
+  }, [pathname]);
+
+  useEffect(() => {
+    if (pathname.startsWith("/product")) {
+      setExpandedMenus((prev) => ({ ...prev, Product: true }));
+    }
   }, [pathname]);
 
   useEffect(() => {
@@ -194,22 +239,55 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
         <nav className="flex-1 space-y-1 p-4" aria-label="Menu utama">
           {navItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isExpanded = expandedMenus[item.label] ?? false;
+            const isChildActive = item.children.some(
+              (child) => pathname === child.href
+            );
 
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={closeSidebar}
-                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
-                  isActive
-                    ? "bg-slate-900 text-white"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                }`}
-              >
-                {item.icon}
-                {item.label}
-              </Link>
+              <div key={item.label}>
+                <button
+                  type="button"
+                  onClick={() => toggleSubmenu(item.label)}
+                  className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
+                    isChildActive
+                      ? "bg-slate-100 text-slate-900"
+                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                  }`}
+                  aria-expanded={isExpanded}
+                >
+                  {item.icon}
+                  <span className="flex-1 text-left">{item.label}</span>
+                  <ChevronIcon expanded={isExpanded} />
+                </button>
+
+                <div
+                  className={`overflow-hidden transition-all duration-200 ${
+                    isExpanded ? "max-h-40 opacity-100" : "max-h-0 opacity-0"
+                  }`}
+                >
+                  <div className="mt-1 space-y-1 pl-4">
+                    {item.children.map((child) => {
+                      const isActive = pathname === child.href;
+
+                      return (
+                        <Link
+                          key={child.href}
+                          href={child.href}
+                          onClick={closeSidebar}
+                          className={`flex items-center rounded-xl py-2.5 pl-8 pr-4 text-sm font-medium transition ${
+                            isActive
+                              ? "bg-slate-900 text-white"
+                              : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                          }`}
+                        >
+                          {child.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
             );
           })}
         </nav>
