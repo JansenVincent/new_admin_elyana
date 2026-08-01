@@ -48,7 +48,7 @@ export default function HomePage() {
     <main className="min-h-screen bg-slate-50">
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <h1 className="text-xl font-bold text-slate-900">Dashboard Admin Ely</h1>
+          <h1 className="text-xl font-bold text-slate-900">Dashboard Admin Elyana</h1>
           <button
             type="button"
             onClick={handleLogout}
