@@ -8,7 +8,8 @@ export const PRODUCT_BARCODE_BUCKET = "product-barcode-images";
 export const PRODUCT_JENIS_OPTIONS = [
   "Aksesoris",
   "Alat Tulis Kantor",
-  "Pakaian",
+  "Boneka",
+  "Kaos Kaki",
   "Lain-lain",
 ] as const;
 
