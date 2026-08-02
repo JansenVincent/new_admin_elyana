@@ -1,6 +1,9 @@
 import type {
   CreateUserInput,
   CreateUserResult,
+  DeleteUserInput,
+  DeleteUserResult,
+  ListNonAdminUsersResult,
   LoginCredentials,
   LoginResult,
 } from "@/domain/entities/AdminUser";
@@ -29,6 +32,20 @@ export class AuthService {
    */
   async createUser(input: CreateUserInput): Promise<CreateUserResult> {
     return authRepository.createUser(input);
+  }
+
+  /**
+   * Mengambil daftar user non-admin untuk halaman Delete User.
+   */
+  async listNonAdminUsers(): Promise<ListNonAdminUsersResult> {
+    return authRepository.listNonAdminUsers();
+  }
+
+  /**
+   * Menghapus user karyawan dari database Supabase.
+   */
+  async deleteUser(input: DeleteUserInput): Promise<DeleteUserResult> {
+    return authRepository.deleteUser(input);
   }
 
   /**

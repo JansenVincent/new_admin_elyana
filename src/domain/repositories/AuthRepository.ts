@@ -1,6 +1,9 @@
 import type {
   CreateUserInput,
   CreateUserResult,
+  DeleteUserInput,
+  DeleteUserResult,
+  ListNonAdminUsersResult,
   LoginCredentials,
   LoginResult,
 } from "@/domain/entities/AdminUser";
@@ -18,4 +21,14 @@ export interface AuthRepository {
    * Mendaftarkan user admin baru ke tabel Admin_Ely_Login.
    */
   createUser(input: CreateUserInput): Promise<CreateUserResult>;
+
+  /**
+   * Mengambil daftar user dengan role selain admin.
+   */
+  listNonAdminUsers(): Promise<ListNonAdminUsersResult>;
+
+  /**
+   * Menghapus user karyawan berdasarkan name dan username.
+   */
+  deleteUser(input: DeleteUserInput): Promise<DeleteUserResult>;
 }

@@ -1,13 +1,17 @@
 import type { AuthRepository } from "@/domain/repositories/AuthRepository";
 import type {
   AdminUser,
+  AdminUserListItem,
   CreateUserInput,
   CreateUserResult,
+  DeleteUserInput,
+  DeleteUserResult,
+  ListNonAdminUsersResult,
   LoginCredentials,
   LoginResult,
 } from "@/domain/entities/AdminUser";
 import { getSupabaseClient } from "@/infrastructure/supabase/client";
-import { DEFAULT_USER_ROLE } from "@/shared/constants/account";
+import { ADMIN_ROLE, DEFAULT_USER_ROLE } from "@/shared/constants/account";
 import { ADMIN_LOGIN_TABLE } from "@/shared/constants/auth";
 
 /**
@@ -126,6 +130,99 @@ export class SupabaseAuthRepository implements AuthRepository {
       return {
         success: true,
         user,
+      };
+    } catch (err) {
+      const message =
+        err instanceof Error && err.name === "AbortError"
+          ? "Request timeout (60 detik)"
+          : err instanceof Error
+            ? err.message
+            : "Terjadi kesalahan tidak terduga";
+
+      return {
+        success: false,
+        error: message,
+      };
+    }
+  }
+
+  /**
+   * Mengambil daftar user dengan role selain admin dari tabel Admin_Ely_Login.
+   */
+  async listNonAdminUsers(): Promise<ListNonAdminUsersResult> {
+    try {
+      const supabase = getSupabaseClient();
+
+      const { data, error } = await supabase
+        .from(ADMIN_LOGIN_TABLE)
+        .select("id, name, username")
+        .neq("role", ADMIN_ROLE)
+        .order("name", { ascending: true });
+
+      if (error) {
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+
+      const users: AdminUserListItem[] = (data ?? []).map((row) => ({
+        id: String(row.id),
+        name: String(row.name ?? ""),
+        username: String(row.username ?? ""),
+      }));
+
+      return {
+        success: true,
+        users,
+      };
+    } catch (err) {
+      const message =
+        err instanceof Error && err.name === "AbortError"
+          ? "Request timeout (60 detik)"
+          : err instanceof Error
+            ? err.message
+            : "Terjadi kesalahan tidak terduga";
+
+      return {
+        success: false,
+        error: message,
+      };
+    }
+  }
+
+  /**
+   * Menghapus user karyawan berdasarkan name dan username.
+   */
+  async deleteUser(input: DeleteUserInput): Promise<DeleteUserResult> {
+    try {
+      const supabase = getSupabaseClient();
+
+      const { data, error } = await supabase
+        .from(ADMIN_LOGIN_TABLE)
+        .delete()
+        .eq("name", input.name.trim())
+        .eq("username", input.username.trim())
+        .eq("role", DEFAULT_USER_ROLE)
+        .select("id")
+        .maybeSingle();
+
+      if (error) {
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+
+      if (!data) {
+        return {
+          success: false,
+          error: "User tidak ditemukan atau tidak dapat dihapus",
+        };
+      }
+
+      return {
+        success: true,
       };
     } catch (err) {
       const message =

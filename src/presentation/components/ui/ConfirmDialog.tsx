@@ -11,12 +11,14 @@ interface ConfirmDialogProps {
   message: string;
   /** Label tombol konfirmasi. */
   confirmLabel?: string;
+  /** Label tombol batal. */
+  cancelLabel?: string;
   /** Apakah sedang memproses aksi konfirmasi. */
   isLoading?: boolean;
 }
 
 /**
- * Dialog konfirmasi dengan ikon peringatan dan tombol Ya.
+ * Dialog konfirmasi dengan ikon peringatan dan tombol Ya/Tidak.
  */
 export default function ConfirmDialog({
   visible,
@@ -24,6 +26,7 @@ export default function ConfirmDialog({
   onConfirm,
   message,
   confirmLabel = "Ya",
+  cancelLabel = "Tidak",
   isLoading = false,
 }: ConfirmDialogProps) {
   if (!visible) {
@@ -37,27 +40,7 @@ export default function ConfirmDialog({
       aria-modal="true"
       aria-labelledby="confirm-dialog-title"
     >
-      <div className="relative w-full max-w-sm rounded-2xl bg-white p-8 shadow-xl">
-        <button
-          type="button"
-          onClick={onClose}
-          disabled={isLoading}
-          className="absolute right-4 top-4 text-slate-400 transition hover:text-slate-600 disabled:opacity-50"
-          aria-label="Tutup"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            className="h-5 w-5"
-            aria-hidden="true"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-
+      <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-xl">
         <div className="flex flex-col items-center text-center">
           <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-amber-50">
             <svg
@@ -82,14 +65,24 @@ export default function ConfirmDialog({
           >
             {message}
           </p>
-          <button
-            type="button"
-            onClick={onConfirm}
-            disabled={isLoading}
-            className="mt-6 w-full rounded-xl bg-slate-900 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isLoading ? "Memproses..." : confirmLabel}
-          </button>
+          <div className="mt-6 flex w-full gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isLoading}
+              className="flex-1 rounded-xl border border-slate-300 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {cancelLabel}
+            </button>
+            <button
+              type="button"
+              onClick={onConfirm}
+              disabled={isLoading}
+              className="flex-1 rounded-xl bg-slate-900 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {confirmLabel}
+            </button>
+          </div>
         </div>
       </div>
     </div>

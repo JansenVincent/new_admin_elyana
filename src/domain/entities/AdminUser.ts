@@ -44,3 +44,37 @@ export interface CreateUserResult {
   user?: AdminUser;
   error?: string;
 }
+
+/**
+ * Item user untuk ditampilkan pada tabel Delete User.
+ */
+export interface AdminUserListItem {
+  id: string;
+  name: string;
+  username: string;
+}
+
+/**
+ * Hasil operasi pengambilan daftar user non-admin.
+ */
+export interface ListNonAdminUsersResult {
+  success: boolean;
+  users?: AdminUserListItem[];
+  error?: string;
+}
+
+/**
+ * Data input untuk menghapus user karyawan.
+ */
+export interface DeleteUserInput {
+  name: string;
+  username: string;
+}
+
+/**
+ * Hasil operasi penghapusan user.
+ */
+export interface DeleteUserResult {
+  success: boolean;
+  error?: string;
+}

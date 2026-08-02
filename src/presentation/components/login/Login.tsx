@@ -4,6 +4,7 @@ import { useMemo, useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { authService } from "@/application/services/AuthService";
 import ErrorPopup from "@/presentation/components/ui/ErrorPopup";
+import LoadingOverlay from "@/presentation/components/ui/LoadingOverlay";
 import PasswordField from "@/presentation/components/ui/PasswordField";
 import { isLoginFormValid } from "@/shared/utils/accountValidation";
 
@@ -127,6 +128,8 @@ export default function Login() {
         message={LOGIN_ERROR_MESSAGE}
         onClose={() => setShowError(false)}
       />
+
+      <LoadingOverlay visible={isLoading} />
     </>
   );
 }

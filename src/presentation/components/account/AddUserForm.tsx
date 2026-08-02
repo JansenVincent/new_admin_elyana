@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { authService } from "@/application/services/AuthService";
 import ConfirmDialog from "@/presentation/components/ui/ConfirmDialog";
 import ErrorPopup from "@/presentation/components/ui/ErrorPopup";
+import LoadingOverlay from "@/presentation/components/ui/LoadingOverlay";
 import PasswordField from "@/presentation/components/ui/PasswordField";
 import { MAX_ACCOUNT_FIELD_LENGTH } from "@/shared/constants/account";
 import {
@@ -44,7 +45,7 @@ export default function AddUserForm() {
   const [ulangiPassword, setUlangiPassword] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [errorMessage, setErrorMessage] = useState("Gagal membuat akun");
   const [showSuccess, setShowSuccess] = useState(false);
@@ -107,7 +108,8 @@ export default function AddUserForm() {
    * Menyimpan akun user baru ke database Supabase.
    */
   async function handleConfirmCreate() {
-    setIsSaving(true);
+    setShowConfirmDialog(false);
+    setIsLoading(true);
 
     const result = await authService.createUser({
       nama,
@@ -115,8 +117,7 @@ export default function AddUserForm() {
       password,
     });
 
-    setIsSaving(false);
-    setShowConfirmDialog(false);
+    setIsLoading(false);
 
     if (result.success) {
       setShowSuccess(true);
@@ -254,8 +255,9 @@ export default function AddUserForm() {
         message="Apakah Anda yakin semua pengisian data akun sudah tepat?"
         onClose={() => setShowConfirmDialog(false)}
         onConfirm={handleConfirmCreate}
-        isLoading={isSaving}
       />
+
+      <LoadingOverlay visible={isLoading} />
 
       <ErrorPopup
         visible={showErrorPopup}

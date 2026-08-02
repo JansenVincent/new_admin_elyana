@@ -1,6 +1,9 @@
 /** Role default untuk user baru yang didaftarkan. */
 export const DEFAULT_USER_ROLE = "karyawan";
 
+/** Role admin yang tidak dapat dihapus dari halaman Delete User. */
+export const ADMIN_ROLE = "admin";
+
 /** Panjang maksimum field akun (nama, username, password). */
 export const MAX_ACCOUNT_FIELD_LENGTH = 30;
 

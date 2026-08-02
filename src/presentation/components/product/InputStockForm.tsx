@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { productStockService } from "@/application/services/ProductStockService";
 import type { ProductJenis } from "@/domain/entities/ProductStock";
 import ErrorPopup from "@/presentation/components/ui/ErrorPopup";
+import LoadingOverlay from "@/presentation/components/ui/LoadingOverlay";
 import { useAuthSession } from "@/shared/hooks/useAuthSession";
 import {
   CURRENCY_OPTIONS,
@@ -537,6 +538,8 @@ export default function InputStockForm() {
         message={errorMessage}
         onClose={() => setShowErrorPopup(false)}
       />
+
+      <LoadingOverlay visible={isSaving} />
 
       {showSuccess && (
         <div
