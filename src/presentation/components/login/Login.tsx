@@ -1,29 +1,44 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useMemo, useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { authService } from "@/application/services/AuthService";
 import ErrorPopup from "@/presentation/components/ui/ErrorPopup";
+import PasswordField from "@/presentation/components/ui/PasswordField";
+import { isLoginFormValid } from "@/shared/utils/accountValidation";
+
+const LOGIN_ERROR_MESSAGE =
+  "Gagal Login.\nMasukkan Username dan Password yang sesuai.";
 
 /**
  * Halaman form login admin dengan desain card modern di tengah layar.
  */
 export default function Login() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showError, setShowError] = useState(false);
+
+  const isFormValid = useMemo(
+    () => isLoginFormValid(username, password),
+    [username, password]
+  );
 
   /**
    * Menangani submit form login.
    */
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (!isFormValid) {
+      return;
+    }
+
     setIsLoading(true);
     setShowError(false);
 
-    const result = await authService.login({ email, password });
+    const result = await authService.login({ username, password });
 
     setIsLoading(false);
 
@@ -49,6 +64,7 @@ export default function Login() {
                   stroke="currentColor"
                   strokeWidth="2"
                   className="h-7 w-7"
+                  aria-hidden="true"
                 >
                   <path
                     strokeLinecap="round"
@@ -68,45 +84,35 @@ export default function Login() {
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
                 <label
-                  htmlFor="email"
+                  htmlFor="username"
                   className="mb-1.5 block text-sm font-medium text-slate-700"
                 >
-                  Email
+                  Username
                 </label>
                 <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  autoComplete="email"
-                  placeholder="nama@email.com"
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(event) => setUsername(event.target.value)}
+                  autoComplete="username"
+                  placeholder="Contoh: admin123"
                   className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-slate-500 focus:bg-white focus:ring-2 focus:ring-slate-200"
                 />
               </div>
 
-              <div>
-                <label
-                  htmlFor="password"
-                  className="mb-1.5 block text-sm font-medium text-slate-700"
-                >
-                  Password
-                </label>
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  autoComplete="current-password"
-                  placeholder="••••••••"
-                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-slate-500 focus:bg-white focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
+              <PasswordField
+                id="password"
+                label="Password"
+                value={password}
+                onChange={setPassword}
+                placeholder="Contoh: Elyana123"
+                autoComplete="current-password"
+                maxLength={undefined}
+              />
 
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={!isFormValid || isLoading}
                 className="w-full rounded-xl bg-slate-900 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isLoading ? "Memproses..." : "Login"}
@@ -116,7 +122,11 @@ export default function Login() {
         </div>
       </main>
 
-      <ErrorPopup visible={showError} onClose={() => setShowError(false)} />
+      <ErrorPopup
+        visible={showError}
+        message={LOGIN_ERROR_MESSAGE}
+        onClose={() => setShowError(false)}
+      />
     </>
   );
 }

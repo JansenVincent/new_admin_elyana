@@ -39,6 +39,30 @@ const navItems: NavItem[] = [
     ),
     children: [{ label: "Input Stock", href: "/product/input-stock" }],
   },
+  {
+    label: "Account",
+    icon: (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        className="h-5 w-5 shrink-0"
+        aria-hidden="true"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+        />
+      </svg>
+    ),
+    children: [
+      { label: "Add User", href: "/account/add-user" },
+      { label: "Delete User", href: "/account/delete-user" },
+    ],
+  },
 ];
 
 interface DashboardLayoutProps {
@@ -122,6 +146,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({
     Product: pathname.startsWith("/product"),
+    Account: pathname.startsWith("/account"),
   });
   const sidebarId = useId();
 
@@ -164,6 +189,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   useEffect(() => {
     if (pathname.startsWith("/product")) {
       setExpandedMenus((prev) => ({ ...prev, Product: true }));
+    }
+
+    if (pathname.startsWith("/account")) {
+      setExpandedMenus((prev) => ({ ...prev, Account: true }));
     }
   }, [pathname]);
 
@@ -263,7 +292,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
                 <div
                   className={`overflow-hidden transition-all duration-200 ${
-                    isExpanded ? "max-h-40 opacity-100" : "max-h-0 opacity-0"
+                    isExpanded ? "max-h-48 opacity-100" : "max-h-0 opacity-0"
                   }`}
                 >
                   <div className="mt-1 space-y-1 pl-4">

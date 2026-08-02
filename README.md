@@ -65,7 +65,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 
 Pastikan tabel `Admin_Ely_Login` memiliki kolom minimal:
 - `id` (uuid/int, primary key)
-- `email` (text)
+- `username` (text)
 - `password` (text)
 
 Untuk fitur Input Stock, jalankan migration di `supabase/migrations/001_create_product_stock.sql` dan buat bucket storage `product-barcode-images` di Supabase Dashboard.

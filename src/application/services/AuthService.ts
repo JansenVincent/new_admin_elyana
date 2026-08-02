@@ -1,4 +1,9 @@
-import type { LoginCredentials, LoginResult } from "@/domain/entities/AdminUser";
+import type {
+  CreateUserInput,
+  CreateUserResult,
+  LoginCredentials,
+  LoginResult,
+} from "@/domain/entities/AdminUser";
 import { authRepository } from "@/infrastructure/repositories/SupabaseAuthRepository";
 import { AUTH_SESSION_KEY } from "@/shared/constants/auth";
 
@@ -17,6 +22,13 @@ export class AuthService {
     }
 
     return result;
+  }
+
+  /**
+   * Mendaftarkan user admin baru ke database Supabase.
+   */
+  async createUser(input: CreateUserInput): Promise<CreateUserResult> {
+    return authRepository.createUser(input);
   }
 
   /**

@@ -3,7 +3,7 @@
  */
 export interface AdminUser {
   id: string;
-  email: string;
+  username: string;
   name: string;
   role: string;
   password?: string;
@@ -14,7 +14,16 @@ export interface AdminUser {
  * Kredensial yang dikirim saat proses login.
  */
 export interface LoginCredentials {
-  email: string;
+  username: string;
+  password: string;
+}
+
+/**
+ * Data input untuk mendaftarkan user admin baru.
+ */
+export interface CreateUserInput {
+  nama: string;
+  username: string;
   password: string;
 }
 
@@ -22,6 +31,15 @@ export interface LoginCredentials {
  * Hasil operasi login.
  */
 export interface LoginResult {
+  success: boolean;
+  user?: AdminUser;
+  error?: string;
+}
+
+/**
+ * Hasil operasi pendaftaran user baru.
+ */
+export interface CreateUserResult {
   success: boolean;
   user?: AdminUser;
   error?: string;
