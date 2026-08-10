@@ -65,7 +65,11 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 
 Pastikan tabel `Admin_Ely_Login` memiliki kolom minimal:
 - `id` (uuid/int, primary key)
+- `name` (text)
 - `username` (text)
 - `password` (text)
+- `role` (text)
+
+Agar **Add User** (INSERT) dan **Delete User** (DELETE) berfungsi, jalankan policy di `supabase/migrations/002_admin_ely_login_policies.sql` lewat Supabase Dashboard → **SQL Editor**.
 
 Untuk fitur Input Stock, jalankan migration di `supabase/migrations/001_create_product_stock.sql` dan buat bucket storage `product-barcode-images` di Supabase Dashboard.
