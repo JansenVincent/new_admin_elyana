@@ -7,7 +7,8 @@ export interface AdminUser {
   name: string;
   role: string;
   password?: string;
-  created_at?: string;
+  created_date?: string;
+  last_login?: string;
 }
 
 /**

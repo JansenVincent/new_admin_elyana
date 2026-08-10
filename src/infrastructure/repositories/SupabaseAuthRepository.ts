@@ -10,26 +10,46 @@ import type {
   LoginCredentials,
   LoginResult,
 } from "@/domain/entities/AdminUser";
-import { getSupabaseClient } from "@/infrastructure/supabase/client";
+import { getSupabaseServerClient } from "@/infrastructure/supabase/serverClient";
 import { ADMIN_ROLE, DEFAULT_USER_ROLE } from "@/shared/constants/account";
 import { ADMIN_LOGIN_TABLE } from "@/shared/constants/auth";
+import {
+  hashPassword,
+  isPasswordHashed,
+  verifyPassword,
+} from "@/shared/utils/password";
+import { getWibTimestampForDb } from "@/shared/utils/timestamp";
 
 /**
- * Implementasi AuthRepository menggunakan Supabase (adapter layer infrastructure).
+ * Memetakan baris database ke entitas AdminUser tanpa password.
+ */
+function mapRowToAdminUser(row: Record<string, unknown>): AdminUser {
+  return {
+    id: String(row.id),
+    username: String(row.username ?? ""),
+    name: String(row.name ?? ""),
+    role: String(row.role ?? ""),
+    created_date: row.created_date ? String(row.created_date) : undefined,
+    last_login: row.last_login ? String(row.last_login) : undefined,
+  };
+}
+
+/**
+ * Implementasi AuthRepository menggunakan Supabase service role (server-side only).
  */
 export class SupabaseAuthRepository implements AuthRepository {
   /**
-   * Memvalidasi username dan password pengguna di tabel Admin_Ely_Login.
+   * Memvalidasi username dan password pengguna, lalu memperbarui last_login.
    */
   async login(credentials: LoginCredentials): Promise<LoginResult> {
     try {
-      const supabase = getSupabaseClient();
+      const supabase = getSupabaseServerClient();
+      const username = credentials.username.trim();
 
       const { data, error } = await supabase
         .from(ADMIN_LOGIN_TABLE)
         .select("*")
-        .eq("username", credentials.username.trim())
-        .eq("password", credentials.password)
+        .eq("username", username)
         .maybeSingle();
 
       if (error) {
@@ -46,13 +66,44 @@ export class SupabaseAuthRepository implements AuthRepository {
         };
       }
 
-      const user: AdminUser = {
-        id: String(data.id),
-        username: data.username,
-        name: String(data.name ?? ""),
-        role: String(data.role ?? ""),
-        created_at: data.created_at,
+      const storedPassword = String(data.password ?? "");
+      const isValidPassword = await verifyPassword(
+        credentials.password,
+        storedPassword
+      );
+
+      if (!isValidPassword) {
+        return {
+          success: false,
+          error: "Username atau password salah",
+        };
+      }
+
+      const lastLogin = getWibTimestampForDb();
+      const updatePayload: Record<string, string> = {
+        last_login: lastLogin,
       };
+
+      if (!isPasswordHashed(storedPassword)) {
+        updatePayload.password = await hashPassword(credentials.password);
+      }
+
+      const { error: updateError } = await supabase
+        .from(ADMIN_LOGIN_TABLE)
+        .update(updatePayload)
+        .eq("id", data.id);
+
+      if (updateError) {
+        return {
+          success: false,
+          error: updateError.message,
+        };
+      }
+
+      const user = mapRowToAdminUser({
+        ...data,
+        last_login: lastLogin,
+      });
 
       return {
         success: true,
@@ -74,12 +125,14 @@ export class SupabaseAuthRepository implements AuthRepository {
   }
 
   /**
-   * Mendaftarkan user admin baru dengan role default karyawan.
+   * Mendaftarkan user admin baru dengan password ter-hash dan created_date UTC.
    */
   async createUser(input: CreateUserInput): Promise<CreateUserResult> {
     try {
-      const supabase = getSupabaseClient();
+      const supabase = getSupabaseServerClient();
       const username = input.username.trim();
+      const createdDate = getWibTimestampForDb();
+      const hashedPassword = await hashPassword(input.password);
 
       const { data: existingUser, error: checkError } = await supabase
         .from(ADMIN_LOGIN_TABLE)
@@ -106,8 +159,10 @@ export class SupabaseAuthRepository implements AuthRepository {
         .insert({
           name: input.nama.trim(),
           username,
-          password: input.password,
+          password: hashedPassword,
           role: DEFAULT_USER_ROLE,
+          created_date: createdDate,
+          last_login: null,
         })
         .select("*")
         .single();
@@ -119,17 +174,9 @@ export class SupabaseAuthRepository implements AuthRepository {
         };
       }
 
-      const user: AdminUser = {
-        id: String(data.id),
-        username: data.username,
-        name: String(data.name ?? ""),
-        role: String(data.role ?? ""),
-        created_at: data.created_at,
-      };
-
       return {
         success: true,
-        user,
+        user: mapRowToAdminUser(data),
       };
     } catch (err) {
       const message =
@@ -151,7 +198,7 @@ export class SupabaseAuthRepository implements AuthRepository {
    */
   async listNonAdminUsers(): Promise<ListNonAdminUsersResult> {
     try {
-      const supabase = getSupabaseClient();
+      const supabase = getSupabaseServerClient();
 
       const { data, error } = await supabase
         .from(ADMIN_LOGIN_TABLE)
@@ -196,7 +243,7 @@ export class SupabaseAuthRepository implements AuthRepository {
    */
   async deleteUser(input: DeleteUserInput): Promise<DeleteUserResult> {
     try {
-      const supabase = getSupabaseClient();
+      const supabase = getSupabaseServerClient();
 
       const { data, error } = await supabase
         .from(ADMIN_LOGIN_TABLE)
@@ -240,5 +287,5 @@ export class SupabaseAuthRepository implements AuthRepository {
   }
 }
 
-/** Singleton instance repository autentikasi. */
+/** Singleton instance repository autentikasi (server-side). */
 export const authRepository = new SupabaseAuthRepository();
