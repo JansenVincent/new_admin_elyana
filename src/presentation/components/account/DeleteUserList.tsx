@@ -6,6 +6,7 @@ import type { AdminUserListItem } from "@/domain/entities/AdminUser";
 import ConfirmDialog from "@/presentation/components/ui/ConfirmDialog";
 import LoadingOverlay from "@/presentation/components/ui/LoadingOverlay";
 import ResultDialog from "@/presentation/components/ui/ResultDialog";
+import { toTitleCase } from "@/shared/utils/stringFormat";
 
 /**
  * Halaman Delete User dengan tabel user non-admin dan aksi hapus.
@@ -13,6 +14,7 @@ import ResultDialog from "@/presentation/components/ui/ResultDialog";
 export default function DeleteUserList() {
   const [users, setUsers] = useState<AdminUserListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AdminUserListItem | null>(
     null
   );
@@ -26,15 +28,18 @@ export default function DeleteUserList() {
    */
   const fetchUsers = useCallback(async () => {
     setIsLoading(true);
+    setLoadError(false);
 
     const result = await authService.listNonAdminUsers();
 
     if (result.success && result.users) {
       setUsers(result.users);
-    } else {
-      setUsers([]);
+      setIsLoading(false);
+      return;
     }
 
+    setLoadError(true);
+    setUsers([]);
     setIsLoading(false);
   }, []);
 
@@ -87,6 +92,48 @@ export default function DeleteUserList() {
     fetchUsers();
   }
 
+  if (loadError && !isLoading) {
+    return (
+      <>
+        <section className="mx-auto max-w-4xl">
+          <div className="rounded-2xl border border-red-200 bg-white p-8 text-center shadow-sm">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-50">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="h-7 w-7 text-red-500"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+            </div>
+            <h2 className="text-lg font-semibold text-slate-900">
+              Gagal memuat data user
+            </h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Terjadi kesalahan saat mengambil data. Silakan coba lagi.
+            </p>
+            <button
+              type="button"
+              onClick={fetchUsers}
+              className="mt-6 rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+            >
+              Refresh
+            </button>
+          </div>
+        </section>
+        <LoadingOverlay visible={isLoading} />
+      </>
+    );
+  }
+
   return (
     <>
       <section className="mx-auto max-w-4xl">
@@ -135,7 +182,7 @@ export default function DeleteUserList() {
                 {users.map((user) => (
                   <tr key={user.id} className="transition hover:bg-slate-50">
                     <td className="px-4 py-4 text-sm text-slate-900 md:px-6">
-                      {user.name}
+                      {toTitleCase(user.name)}
                     </td>
                     <td className="px-4 py-4 text-sm text-slate-600 md:px-6">
                       {user.username}
@@ -161,7 +208,7 @@ export default function DeleteUserList() {
         visible={showConfirmDialog}
         message={
           selectedUser
-            ? `Apakah Anda yakin akan menghapus User bernama ${selectedUser.name}?`
+            ? `Apakah Anda yakin akan menghapus User bernama ${toTitleCase(selectedUser.name)}?`
             : ""
         }
         onClose={handleCloseConfirm}
