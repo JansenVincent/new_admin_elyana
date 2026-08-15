@@ -84,3 +84,12 @@ Jalankan migration berurutan di Supabase SQL Editor:
 2. `supabase/migrations/004_admin_ely_login_wib_timestamp.sql` — default created_date WIB
 
 Untuk fitur Input Stock, jalankan migration di `supabase/migrations/001_create_product_stock.sql` dan buat bucket storage `product-barcode-images` di Supabase Dashboard.
+
+### Tabel Admin_Ely_Customer
+
+Jalankan `supabase/migrations/005_create_admin_ely_customer.sql` di Supabase SQL Editor, lalu lanjutkan dengan `006_admin_ely_customer_security.sql` untuk mengaktifkan RLS dan memblokir akses langsung dari browser.
+
+Kolom:
+- `id` (text, PK) — auto `cust_1`, `cust_2`, ...
+- `cust_name`, `address`, `front_code`, `back_code`
+- `created_date` (WIB), `last_edited` (WIB, null default, auto-update saat UPDATE)
