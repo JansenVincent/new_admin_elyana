@@ -13,6 +13,7 @@ import type {
 import { getSupabaseServerClient } from "@/infrastructure/supabase/serverClient";
 import { ADMIN_ROLE, DEFAULT_USER_ROLE } from "@/shared/constants/account";
 import { ADMIN_LOGIN_TABLE } from "@/shared/constants/auth";
+import { toTitleCase } from "@/shared/utils/stringFormat";
 import {
   hashPassword,
   isPasswordHashed,
@@ -157,7 +158,7 @@ export class SupabaseAuthRepository implements AuthRepository {
       const { data, error } = await supabase
         .from(ADMIN_LOGIN_TABLE)
         .insert({
-          name: input.nama.trim(),
+          name: toTitleCase(input.nama),
           username,
           password: hashedPassword,
           role: DEFAULT_USER_ROLE,
