@@ -285,6 +285,16 @@ export default function CustomerList() {
   }
 
   /**
+   * Mereset pencarian dan memuat ulang seluruh data customer seperti load awal.
+   */
+  function handleResetSearch() {
+    setActiveSearch("");
+    setPage(1);
+    setSearchInput("");
+    setShowSearchOverlay(false);
+  }
+
+  /**
    * Menutup popup hasil dan me-refresh tabel.
    */
   function handleCloseResultAndRefresh() {
@@ -351,14 +361,24 @@ export default function CustomerList() {
             </div>
 
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setShowAddForm(true)}
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
-              >
-                <span className="text-lg leading-none">+</span>
-                Tambah Customer
-              </button>
+              {activeSearch ? (
+                <button
+                  type="button"
+                  onClick={handleResetSearch}
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+                >
+                  Reset Pencarian
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowAddForm(true)}
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+                >
+                  <span className="text-lg leading-none">+</span>
+                  Tambah Customer
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setShowSearchOverlay(true)}
