@@ -59,7 +59,7 @@ const navItems: NavItem[] = [
         />
       </svg>
     ),
-    children: [{ label: "Input Stock", href: "/product/input-stock" }],
+    children: [{ label: "Input Barang", href: "/product/input-stock" }],
   },
   {
     label: "Account",

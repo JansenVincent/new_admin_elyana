@@ -16,15 +16,16 @@ export const PRODUCT_BARCODE_BUCKET = "product-barcode-images";
 /** @deprecated Gunakan PRODUCT_TABLE. Tabel lama Input Stock sebelum refactor flow. */
 export const PRODUCT_STOCK_TABLE = "Admin_Ely_Product_Stock";
 
-/** Opsi jenis barang pada form Input Stock (flow lama). */
+/** Opsi jenis barang pada form Input Barang. */
 export const PRODUCT_JENIS_OPTIONS = [
   "Aksesoris",
   "Alat Tulis Kantor",
-  "Pakaian",
+  "Boneka",
+  "Kaos Kaki",
   "Lain-lain",
 ] as const;
 
-/** Opsi mata uang pada form Input Stock (flow lama). */
+/** Opsi mata uang pada form Input Barang. */
 export const CURRENCY_OPTIONS = [
   { code: "IDR", label: "IDR - Rupiah Indonesia" },
   { code: "USD", label: "USD - US Dollar" },
@@ -39,8 +40,14 @@ export const CURRENCY_OPTIONS = [
 /** Ukuran maksimum upload gambar barcode (5MB). */
 export const MAX_BARCODE_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 
-/** Panjang maksimum detail barang (flow lama). */
-export const MAX_DETAIL_BARANG_LENGTH = 500;
+/** Panjang maksimum keterangan barang. */
+export const MAX_KETERANGAN_LENGTH = 250;
+
+/** Panjang maksimum satuan barang. */
+export const MAX_SATUAN_BARANG_LENGTH = 50;
+
+/** @deprecated Gunakan MAX_KETERANGAN_LENGTH */
+export const MAX_DETAIL_BARANG_LENGTH = MAX_KETERANGAN_LENGTH;
 
 /** Ekstensi gambar yang didukung untuk upload barcode. */
 export const SUPPORTED_BARCODE_IMAGE_EXTENSIONS =

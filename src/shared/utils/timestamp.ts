@@ -22,3 +22,15 @@ export function getWibTimestampForDb(): string {
 
   return `${get("year")}-${get("month")}-${get("day")} ${get("hour")}:${get("minute")}:${get("second")}`;
 }
+
+/**
+ * Menghasilkan tanggal hari ini WIB dalam format `YYYY-MM-DD` untuk input date.
+ */
+export function getTodayWibDateInputValue(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: WIB_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}

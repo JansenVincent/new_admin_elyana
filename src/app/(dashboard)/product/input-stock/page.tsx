@@ -1,7 +1,7 @@
 import InputStockForm from "@/presentation/components/product/InputStockForm";
 
 /**
- * Halaman form Input Stock untuk pengisian detail product di toko.
+ * Halaman form Input Barang untuk pengisian product, harga, dan barcode.
  */
 export default function InputStockPage() {
   return <InputStockForm />;
