@@ -84,6 +84,8 @@ Jalankan **berurutan** di Supabase SQL Editor:
 | `012_admin_ely_histori_harga_security.sql` | RLS histori harga |
 | `013_create_product_barcode_bucket.sql` | Bucket storage `product-barcode-images` |
 | `014_alter_histori_masuk_tanggal_masuk_to_date.sql` | `tanggal_masuk` TIMESTAMP → DATE (YYYY-MM-DD) |
+| `015_create_admin_ely_histori_keluar_product.sql` | Histori keluar barang |
+| `016_admin_ely_histori_keluar_product_security.sql` | RLS histori keluar |
 
 Atau buat bucket storage **`product-barcode-images`** manual di Supabase Dashboard → **Storage** → **New bucket** (Public bucket, max file size 5MB).
 
@@ -96,6 +98,8 @@ Atau buat bucket storage **`product-barcode-images`** manual di Supabase Dashboa
 **Admin_Ely_Product:** `product_id` (PK, product_1...), nama_barang, tipe_barang, kuantitas, satuan_kuantitas, keterangan, barcode
 
 **Admin_Ely_Harga:** `harga_id` (PK, price_1...), product_id (FK), cust_id (FK), harga, mata_uang
+
+**Admin_Ely_Histori_Keluar_Product:** `keluar_id` (PK, keluar_1...), product_id (FK), tanggal_keluar (DATE), kuantitas_keluar, catatan
 
 ### Keamanan Production
 

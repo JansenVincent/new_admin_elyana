@@ -4,6 +4,9 @@ export const PRODUCT_TABLE = "Admin_Ely_Product";
 /** Nama tabel histori masuk product di Supabase. */
 export const HISTORI_MASUK_TABLE = "Admin_Ely_Histori_Masuk_Product";
 
+/** Nama tabel histori keluar product di Supabase. */
+export const HISTORI_KELUAR_TABLE = "Admin_Ely_Histori_Keluar_Product";
+
 /** Nama tabel harga product per customer di Supabase. */
 export const HARGA_TABLE = "Admin_Ely_Harga";
 
