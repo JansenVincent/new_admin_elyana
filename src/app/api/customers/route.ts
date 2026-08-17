@@ -73,9 +73,9 @@ export async function PATCH(request: Request) {
   try {
     const body = (await request.json()) as UpdateCustomerAddressInput;
 
-    if (!body.id || !body.address?.trim()) {
+    if (!body.cust_id || !body.address?.trim()) {
       return NextResponse.json(
-        { success: false, error: "ID dan alamat wajib diisi" },
+        { success: false, error: "cust_id dan alamat wajib diisi" },
         { status: 400 }
       );
     }

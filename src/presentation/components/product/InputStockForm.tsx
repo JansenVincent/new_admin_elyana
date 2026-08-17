@@ -226,7 +226,7 @@ export default function InputStockForm() {
       jenis,
       detailBarang,
       barcodeImage,
-      createdBy: user?.id,
+      createdBy: user?.user_id,
     });
 
     setIsSaving(false);

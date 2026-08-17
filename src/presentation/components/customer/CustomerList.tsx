@@ -181,7 +181,7 @@ export default function CustomerList() {
     setIsLoading(true);
 
     const result = await customerService.updateCustomerAddress({
-      id: editCustomer.id,
+      cust_id: editCustomer.cust_id,
       address: editAddress.trim(),
     });
 
@@ -441,7 +441,7 @@ export default function CustomerList() {
                   const rowNumber = (page - 1) * CUSTOMER_PAGE_SIZE + index + 1;
 
                   return (
-                    <tr key={customer.id} className="transition hover:bg-slate-50">
+                    <tr key={customer.cust_id} className="transition hover:bg-slate-50">
                       <td className="px-4 py-4 text-sm text-slate-600 md:px-6">
                         {rowNumber}
                       </td>

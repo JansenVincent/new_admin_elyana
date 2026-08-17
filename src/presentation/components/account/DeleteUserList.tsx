@@ -180,7 +180,7 @@ export default function DeleteUserList() {
                 )}
 
                 {users.map((user) => (
-                  <tr key={user.id} className="transition hover:bg-slate-50">
+                  <tr key={user.user_id} className="transition hover:bg-slate-50">
                     <td className="px-4 py-4 text-sm text-slate-900 md:px-6">
                       {toTitleCase(user.name)}
                     </td>

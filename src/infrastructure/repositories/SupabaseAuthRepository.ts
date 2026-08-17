@@ -26,7 +26,7 @@ import { getWibTimestampForDb } from "@/shared/utils/timestamp";
  */
 function mapRowToAdminUser(row: Record<string, unknown>): AdminUser {
   return {
-    id: String(row.id),
+    user_id: String(row.user_id),
     username: String(row.username ?? ""),
     name: String(row.name ?? ""),
     role: String(row.role ?? ""),
@@ -92,7 +92,7 @@ export class SupabaseAuthRepository implements AuthRepository {
       const { error: updateError } = await supabase
         .from(ADMIN_LOGIN_TABLE)
         .update(updatePayload)
-        .eq("id", data.id);
+        .eq("user_id", data.user_id);
 
       if (updateError) {
         return {
@@ -137,7 +137,7 @@ export class SupabaseAuthRepository implements AuthRepository {
 
       const { data: existingUser, error: checkError } = await supabase
         .from(ADMIN_LOGIN_TABLE)
-        .select("id")
+        .select("user_id")
         .eq("username", username)
         .maybeSingle();
 
@@ -203,7 +203,7 @@ export class SupabaseAuthRepository implements AuthRepository {
 
       const { data, error } = await supabase
         .from(ADMIN_LOGIN_TABLE)
-        .select("id, name, username")
+        .select("user_id, name, username")
         .neq("role", ADMIN_ROLE)
         .order("name", { ascending: true });
 
@@ -215,7 +215,7 @@ export class SupabaseAuthRepository implements AuthRepository {
       }
 
       const users: AdminUserListItem[] = (data ?? []).map((row) => ({
-        id: String(row.id),
+        user_id: String(row.user_id),
         name: String(row.name ?? ""),
         username: String(row.username ?? ""),
       }));
@@ -252,7 +252,7 @@ export class SupabaseAuthRepository implements AuthRepository {
         .eq("name", input.name.trim())
         .eq("username", input.username.trim())
         .eq("role", DEFAULT_USER_ROLE)
-        .select("id")
+        .select("user_id")
         .maybeSingle();
 
       if (error) {

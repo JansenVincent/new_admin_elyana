@@ -15,3 +15,9 @@ export const MAX_CODE_LENGTH = 10;
 
 /** Panjang minimum field teks customer pada form. */
 export const MIN_CUSTOMER_FIELD_LENGTH = 1;
+
+/** Status customer aktif. */
+export const CUSTOMER_STATUS_ACTIVE = "Active";
+
+/** Status customer nonaktif (soft delete). */
+export const CUSTOMER_STATUS_INACTIVE = "Inactive";

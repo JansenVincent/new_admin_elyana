@@ -2,11 +2,12 @@
  * Entitas customer dari tabel Admin_Ely_Customer.
  */
 export interface Customer {
-  id: string;
+  cust_id: string;
   cust_name: string;
   address: string | null;
   front_code: string;
   back_code: string;
+  status_customer: string;
   created_date?: string;
   last_edited?: string | null;
 }
@@ -25,12 +26,12 @@ export interface CreateCustomerInput {
  * Data input untuk memperbarui alamat customer.
  */
 export interface UpdateCustomerAddressInput {
-  id: string;
+  cust_id: string;
   address: string;
 }
 
 /**
- * Data input untuk menghapus customer berdasarkan nama dan kode.
+ * Data input untuk soft delete customer berdasarkan nama dan kode.
  */
 export interface DeleteCustomerInput {
   cust_name: string;

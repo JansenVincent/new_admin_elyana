@@ -64,32 +64,39 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
 Lihat `.env.example` untuk penjelasan lengkap.
 
-## Tabel Supabase
+## Migration Supabase
 
-Pastikan tabel `Admin_Ely_Login` memiliki kolom minimal:
-- `id` (uuid/int, primary key)
-- `name` (text)
-- `username` (text)
-- `password` (text) — disimpan ter-hash bcrypt via API server-side
-- `role` (text)
-- `created_date` (timestamp) — default WIB: `date_trunc('second', now() AT TIME ZONE 'Asia/Jakarta')`
-- `last_login` (timestamp, nullable) — di-update ke waktu WIB saat login berhasil
+Jalankan **berurutan** di Supabase SQL Editor:
+
+| File | Isi |
+|------|-----|
+| `001_create_admin_ely_login.sql` | Tabel login (`user_id`, name, username, password, role, ...) |
+| `002_admin_ely_login_security.sql` | RLS + revoke anon |
+| `003_create_admin_ely_customer.sql` | Tabel customer (`cust_id`, `status_customer`, ...) |
+| `004_admin_ely_customer_security.sql` | RLS customer |
+| `005_create_admin_ely_product.sql` | Tabel product |
+| `006_admin_ely_product_security.sql` | RLS product |
+| `007_create_admin_ely_histori_masuk_product.sql` | Histori masuk barang |
+| `008_admin_ely_histori_masuk_product_security.sql` | RLS histori masuk |
+| `009_create_admin_ely_harga.sql` | Tabel harga per customer |
+| `010_admin_ely_harga_security.sql` | RLS harga |
+| `011_create_admin_ely_histori_harga.sql` | Histori harga |
+| `012_admin_ely_histori_harga_security.sql` | RLS histori harga |
+
+Buat bucket storage `product-barcode-images` di Supabase Dashboard untuk upload barcode.
+
+### Kolom utama
+
+**Admin_Ely_Login:** `user_id` (PK, user_1...), name, username, password (bcrypt), role, created_date, last_login
+
+**Admin_Ely_Customer:** `cust_id` (PK, cust_1...), cust_name, address, front_code, back_code, status_customer (default Active), created_date, last_edited
+
+**Admin_Ely_Product:** `product_id` (PK, product_1...), nama_barang, tipe_barang, kuantitas, satuan_kuantitas, keterangan, barcode
+
+**Admin_Ely_Harga:** `harga_id` (PK, price_1...), product_id (FK), cust_id (FK), harga, mata_uang
 
 ### Keamanan Production
 
-Operasi **Login**, **Add User**, dan **Delete User** dijalankan melalui **API route Next.js** (`/api/auth/login`, `/api/users`) memakai **service role key** (server-only). Password di-hash dengan bcrypt sebelum disimpan.
+Operasi sensitif lewat **API route** + **SUPABASE_SERVICE_ROLE_KEY**. Hapus customer = soft delete (`status_customer` → Inactive).
 
-Jalankan migration berurutan di Supabase SQL Editor:
-1. `supabase/migrations/003_admin_ely_login_security.sql` — keamanan & revoke akses anon
-2. `supabase/migrations/004_admin_ely_login_wib_timestamp.sql` — default created_date WIB
-
-Untuk fitur Input Stock, jalankan migration di `supabase/migrations/001_create_product_stock.sql` dan buat bucket storage `product-barcode-images` di Supabase Dashboard.
-
-### Tabel Admin_Ely_Customer
-
-Jalankan `supabase/migrations/005_create_admin_ely_customer.sql` di Supabase SQL Editor, lalu lanjutkan dengan `006_admin_ely_customer_security.sql` untuk mengaktifkan RLS dan memblokir akses langsung dari browser.
-
-Kolom:
-- `id` (text, PK) — auto `cust_1`, `cust_2`, ...
-- `cust_name`, `address`, `front_code`, `back_code`
-- `created_date` (WIB), `last_edited` (WIB, null default, auto-update saat UPDATE)
+> **Catatan:** Form Input Stock (flow lama) masih menunjuk ke tabel `Admin_Ely_Product_Stock` — akan di-refactor mengikuti schema `Admin_Ely_Product` baru.

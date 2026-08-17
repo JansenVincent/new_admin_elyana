@@ -2,7 +2,7 @@
  * Entitas pengguna admin dari tabel Admin_Ely_Login.
  */
 export interface AdminUser {
-  id: string;
+  user_id: string;
   username: string;
   name: string;
   role: string;
@@ -50,7 +50,7 @@ export interface CreateUserResult {
  * Item user untuk ditampilkan pada tabel Delete User.
  */
 export interface AdminUserListItem {
-  id: string;
+  user_id: string;
   name: string;
   username: string;
 }

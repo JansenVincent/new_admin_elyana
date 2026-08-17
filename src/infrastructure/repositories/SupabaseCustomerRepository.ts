@@ -9,7 +9,11 @@ import type {
   UpdateCustomerAddressInput,
 } from "@/domain/entities/Customer";
 import { getSupabaseServerClient } from "@/infrastructure/supabase/serverClient";
-import { CUSTOMER_TABLE } from "@/shared/constants/customer";
+import {
+  CUSTOMER_STATUS_ACTIVE,
+  CUSTOMER_STATUS_INACTIVE,
+  CUSTOMER_TABLE,
+} from "@/shared/constants/customer";
 import { getWibTimestampForDb } from "@/shared/utils/timestamp";
 
 /**
@@ -17,11 +21,12 @@ import { getWibTimestampForDb } from "@/shared/utils/timestamp";
  */
 function mapRowToCustomer(row: Record<string, unknown>): Customer {
   return {
-    id: String(row.id),
+    cust_id: String(row.cust_id),
     cust_name: String(row.cust_name ?? ""),
     address: row.address ? String(row.address) : null,
     front_code: String(row.front_code ?? ""),
     back_code: String(row.back_code ?? ""),
+    status_customer: String(row.status_customer ?? CUSTOMER_STATUS_ACTIVE),
     created_date: row.created_date ? String(row.created_date) : undefined,
     last_edited: row.last_edited ? String(row.last_edited) : null,
   };
@@ -32,7 +37,7 @@ function mapRowToCustomer(row: Record<string, unknown>): Customer {
  */
 export class SupabaseCustomerRepository implements CustomerRepository {
   /**
-   * Mengambil daftar customer dengan paginasi, sort A-Z, dan pencarian substring.
+   * Mengambil daftar customer aktif dengan paginasi, sort A-Z, dan pencarian substring.
    */
   async list(params: ListCustomersParams): Promise<ListCustomersResult> {
     try {
@@ -45,6 +50,7 @@ export class SupabaseCustomerRepository implements CustomerRepository {
       let query = supabase
         .from(CUSTOMER_TABLE)
         .select("*", { count: "exact" })
+        .eq("status_customer", CUSTOMER_STATUS_ACTIVE)
         .order("cust_name", { ascending: true });
 
       if (params.search?.trim()) {
@@ -100,6 +106,7 @@ export class SupabaseCustomerRepository implements CustomerRepository {
           address: input.address.trim(),
           front_code: input.front_code.trim(),
           back_code: input.back_code.trim(),
+          status_customer: CUSTOMER_STATUS_ACTIVE,
           created_date: createdDate,
           last_edited: null,
         })
@@ -133,7 +140,7 @@ export class SupabaseCustomerRepository implements CustomerRepository {
   }
 
   /**
-   * Memperbarui alamat customer berdasarkan id.
+   * Memperbarui alamat customer berdasarkan cust_id.
    */
   async updateAddress(
     input: UpdateCustomerAddressInput
@@ -148,7 +155,8 @@ export class SupabaseCustomerRepository implements CustomerRepository {
           address: input.address.trim(),
           last_edited: lastEdited,
         })
-        .eq("id", input.id)
+        .eq("cust_id", input.cust_id)
+        .eq("status_customer", CUSTOMER_STATUS_ACTIVE)
         .select("*")
         .maybeSingle();
 
@@ -186,19 +194,24 @@ export class SupabaseCustomerRepository implements CustomerRepository {
   }
 
   /**
-   * Menghapus customer berdasarkan nama dan kode.
+   * Soft delete customer dengan mengubah status_customer menjadi Inactive.
    */
   async delete(input: DeleteCustomerInput): Promise<CustomerMutationResult> {
     try {
       const supabase = getSupabaseServerClient();
+      const lastEdited = getWibTimestampForDb();
 
       const { data, error } = await supabase
         .from(CUSTOMER_TABLE)
-        .delete()
+        .update({
+          status_customer: CUSTOMER_STATUS_INACTIVE,
+          last_edited: lastEdited,
+        })
         .eq("cust_name", input.cust_name.trim())
         .eq("front_code", input.front_code.trim())
         .eq("back_code", input.back_code.trim())
-        .select("id")
+        .eq("status_customer", CUSTOMER_STATUS_ACTIVE)
+        .select("cust_id")
         .maybeSingle();
 
       if (error) {
