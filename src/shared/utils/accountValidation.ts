@@ -109,6 +109,21 @@ export function validateAddUserForm(input: {
 }
 
 /**
+ * Mengembalikan pesan error untuk satu field form Add User.
+ */
+export function getAddUserFieldError(
+  field: "nama" | "username" | "password" | "ulangiPassword",
+  input: {
+    nama: string;
+    username: string;
+    password: string;
+    ulangiPassword: string;
+  }
+): string | undefined {
+  return validateAddUserForm(input)[field];
+}
+
+/**
  * Mengecek apakah form Add User valid tanpa error.
  */
 export function isAddUserFormValid(input: {

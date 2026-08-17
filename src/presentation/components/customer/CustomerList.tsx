@@ -15,10 +15,12 @@ import {
 import {
   clampCustomerField,
   formatCustomerCode,
+  getCreateCustomerFieldError,
   isCreateCustomerFormValid,
   validateCreateCustomerForm,
   validateEditAddress,
 } from "@/shared/utils/customerValidation";
+import { useBlurFieldValidation } from "@/shared/hooks/useBlurFieldValidation";
 import { toTitleCase } from "@/shared/utils/stringFormat";
 
 const inputClassName =
@@ -44,9 +46,12 @@ export default function CustomerList() {
   const [address, setAddress] = useState("");
   const [frontCode, setFrontCode] = useState("");
   const [backCode, setBackCode] = useState("");
-  const [addFieldErrors, setAddFieldErrors] = useState<Record<string, string>>(
-    {}
-  );
+  const {
+    handleFieldBlur: handleAddFieldBlur,
+    getFieldError: getAddFieldError,
+    applySubmitErrors: applyAddSubmitErrors,
+    resetValidation: resetAddValidation,
+  } = useBlurFieldValidation();
   const [showAddConfirm, setShowAddConfirm] = useState(false);
   const [addResult, setAddResult] = useState<"success" | "error" | null>(null);
 
@@ -127,9 +132,24 @@ export default function CustomerList() {
     setAddress("");
     setFrontCode("");
     setBackCode("");
-    setAddFieldErrors({});
+    resetAddValidation();
     setShowAddForm(false);
     setShowAddConfirm(false);
+  }
+
+  /** Nilai form tambah customer untuk validasi field. */
+  const addFormValues = { custName, address, frontCode, backCode };
+
+  /**
+   * Menangani blur field form tambah customer dengan validasi langsung.
+   */
+  function handleAddFormFieldBlur(
+    field: "custName" | "address" | "frontCode" | "backCode"
+  ) {
+    handleAddFieldBlur(
+      field,
+      getCreateCustomerFieldError(field, addFormValues)
+    );
   }
 
   /**
@@ -223,7 +243,7 @@ export default function CustomerList() {
       backCode,
     });
 
-    setAddFieldErrors(errors);
+    applyAddSubmitErrors(errors);
 
     if (Object.keys(errors).length > 0) {
       return;
@@ -576,7 +596,9 @@ export default function CustomerList() {
               className="mt-6 space-y-4"
               onSubmit={(event) => {
                 event.preventDefault();
-                if (!isAddFormValid) {
+                const errors = validateCreateCustomerForm(addFormValues);
+                applyAddSubmitErrors(errors);
+                if (Object.keys(errors).length > 0) {
                   return;
                 }
                 setShowAddConfirm(true);
@@ -595,12 +617,13 @@ export default function CustomerList() {
                       clampCustomerField(event.target.value, MAX_CUST_NAME_LENGTH)
                     )
                   }
+                  onBlur={() => handleAddFormFieldBlur("custName")}
                   maxLength={MAX_CUST_NAME_LENGTH}
                   placeholder="Masukkan nama customer baru"
                   className={inputClassName}
                 />
-                {addFieldErrors.custName && (
-                  <p className="mt-1.5 text-sm text-red-600">{addFieldErrors.custName}</p>
+                {getAddFieldError("custName") && (
+                  <p className="mt-1.5 text-sm text-red-600">{getAddFieldError("custName")}</p>
                 )}
               </div>
 
@@ -616,13 +639,14 @@ export default function CustomerList() {
                       clampCustomerField(event.target.value, MAX_ADDRESS_LENGTH)
                     )
                   }
+                  onBlur={() => handleAddFormFieldBlur("address")}
                   maxLength={MAX_ADDRESS_LENGTH}
                   placeholder="Masukkan alamat customer baru"
                   rows={3}
                   className={`${inputClassName} resize-y`}
                 />
-                {addFieldErrors.address && (
-                  <p className="mt-1.5 text-sm text-red-600">{addFieldErrors.address}</p>
+                {getAddFieldError("address") && (
+                  <p className="mt-1.5 text-sm text-red-600">{getAddFieldError("address")}</p>
                 )}
               </div>
 
@@ -640,12 +664,13 @@ export default function CustomerList() {
                         clampCustomerField(event.target.value, MAX_CODE_LENGTH)
                       )
                     }
+                    onBlur={() => handleAddFormFieldBlur("frontCode")}
                     maxLength={MAX_CODE_LENGTH}
                     placeholder="Masukkan kode depan"
                     className={inputClassName}
                   />
-                  {addFieldErrors.frontCode && (
-                    <p className="mt-1.5 text-sm text-red-600">{addFieldErrors.frontCode}</p>
+                  {getAddFieldError("frontCode") && (
+                    <p className="mt-1.5 text-sm text-red-600">{getAddFieldError("frontCode")}</p>
                   )}
                 </div>
 
@@ -662,12 +687,13 @@ export default function CustomerList() {
                         clampCustomerField(event.target.value, MAX_CODE_LENGTH)
                       )
                     }
+                    onBlur={() => handleAddFormFieldBlur("backCode")}
                     maxLength={MAX_CODE_LENGTH}
                     placeholder="Masukkan kode belakang"
                     className={inputClassName}
                   />
-                  {addFieldErrors.backCode && (
-                    <p className="mt-1.5 text-sm text-red-600">{addFieldErrors.backCode}</p>
+                  {getAddFieldError("backCode") && (
+                    <p className="mt-1.5 text-sm text-red-600">{getAddFieldError("backCode")}</p>
                   )}
                 </div>
               </div>

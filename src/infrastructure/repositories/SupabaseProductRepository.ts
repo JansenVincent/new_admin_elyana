@@ -1,6 +1,7 @@
 import type { ProductRepository } from "@/domain/repositories/ProductRepository";
 import type {
   ActiveCustomerOption,
+  InputBarangSaveErrorStage,
   SaveInputBarangInput,
   SaveInputBarangResult,
 } from "@/domain/entities/InputBarang";
@@ -9,6 +10,9 @@ import {
   HARGA_TABLE,
   HISTORI_HARGA_TABLE,
   HISTORI_MASUK_TABLE,
+  INPUT_BARANG_ERROR_BARCODE_BUCKET,
+  INPUT_BARANG_ERROR_BARCODE_UPLOAD,
+  INPUT_BARANG_ERROR_MESSAGES,
   PRODUCT_BARCODE_BUCKET,
   PRODUCT_TABLE,
 } from "@/shared/constants/product";
@@ -21,6 +25,14 @@ import {
   buildHistoriMasukCatatan,
 } from "@/shared/utils/formatCatatan";
 
+/** State insert sementara untuk rollback jika salah satu step gagal. */
+interface InputBarangInsertState {
+  barcodeStoragePath?: string;
+  productId?: string;
+  hargaIds: string[];
+  histHargaIds: string[];
+}
+
 /**
  * Implementasi ProductRepository menggunakan Supabase service role (server-side only).
  */
@@ -31,7 +43,7 @@ export class SupabaseProductRepository implements ProductRepository {
   private async uploadBarcodeImage(
     file: File,
     username: string
-  ): Promise<{ url: string } | { error: string }> {
+  ): Promise<{ url: string; storagePath: string } | { error: string }> {
     const supabase = getSupabaseServerClient();
     const extension = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
     const uniqueName = `${username}-${Date.now()}-${crypto.randomUUID()}.${extension}`;
@@ -56,7 +68,62 @@ export class SupabaseProductRepository implements ProductRepository {
       .from(PRODUCT_BARCODE_BUCKET)
       .getPublicUrl(storagePath);
 
-    return { url: data.publicUrl };
+    return { url: data.publicUrl, storagePath };
+  }
+
+  /**
+   * Menghapus file barcode dari storage saat rollback.
+   */
+  private async deleteBarcodeImage(storagePath: string): Promise<void> {
+    const supabase = getSupabaseServerClient();
+    await supabase.storage.from(PRODUCT_BARCODE_BUCKET).remove([storagePath]);
+  }
+
+  /**
+   * Melakukan rollback data yang sudah ter-insert jika salah satu step gagal.
+   */
+  private async rollbackInputBarang(state: InputBarangInsertState): Promise<void> {
+    const supabase = getSupabaseServerClient();
+
+    if (state.histHargaIds.length > 0) {
+      await supabase
+        .from(HISTORI_HARGA_TABLE)
+        .delete()
+        .in("hist_harga_id", state.histHargaIds);
+    }
+
+    if (state.hargaIds.length > 0) {
+      await supabase.from(HARGA_TABLE).delete().in("harga_id", state.hargaIds);
+    }
+
+    if (state.productId) {
+      await supabase
+        .from(HISTORI_MASUK_TABLE)
+        .delete()
+        .eq("product_id", state.productId);
+
+      await supabase
+        .from(PRODUCT_TABLE)
+        .delete()
+        .eq("product_id", state.productId);
+    }
+
+    if (state.barcodeStoragePath) {
+      await this.deleteBarcodeImage(state.barcodeStoragePath);
+    }
+  }
+
+  /**
+   * Mengembalikan hasil gagal dengan tahap error dan pesan popup standar.
+   */
+  private buildFailureResult(
+    stage: InputBarangSaveErrorStage
+  ): SaveInputBarangResult {
+    return {
+      success: false,
+      errorStage: stage,
+      error: INPUT_BARANG_ERROR_MESSAGES[stage],
+    };
   }
 
   /**
@@ -94,11 +161,16 @@ export class SupabaseProductRepository implements ProductRepository {
   }
 
   /**
-   * Menyimpan data Input Barang secara serial ke Admin_Ely_Product, histori masuk, harga, dan histori harga.
+   * Menyimpan data Input Barang secara serial dengan rollback jika salah satu insert gagal.
    */
   async saveInputBarang(
     input: SaveInputBarangInput
   ): Promise<SaveInputBarangResult> {
+    const insertState: InputBarangInsertState = {
+      hargaIds: [],
+      histHargaIds: [],
+    };
+
     try {
       const uploadResult = await this.uploadBarcodeImage(
         input.barcodeImage,
@@ -106,69 +178,99 @@ export class SupabaseProductRepository implements ProductRepository {
       );
 
       if ("error" in uploadResult) {
-        return { success: false, error: uploadResult.error };
+        const uploadMessage = uploadResult.error.toLowerCase();
+
+        if (uploadMessage.includes("bucket not found")) {
+          return {
+            success: false,
+            error: INPUT_BARANG_ERROR_BARCODE_BUCKET,
+          };
+        }
+
+        return {
+          success: false,
+          error: INPUT_BARANG_ERROR_BARCODE_UPLOAD,
+        };
       }
+
+      insertState.barcodeStoragePath = uploadResult.storagePath;
 
       const supabase = getSupabaseServerClient();
       const now = new Date();
 
-      const { data: productData, error: productError } = await supabase
-        .from(PRODUCT_TABLE)
-        .insert({
-          nama_barang: input.namaBarang.trim(),
-          tipe_barang: input.jenis,
-          kuantitas: input.jumlahBarang,
-          satuan_kuantitas: input.satuanBarang.trim(),
-          keterangan: input.keteranganBarang.trim(),
-          barcode: uploadResult.url,
-        })
-        .select("product_id")
-        .single();
+      try {
+        const { data: productData, error: productError } = await supabase
+          .from(PRODUCT_TABLE)
+          .insert({
+            nama_barang: input.namaBarang.trim(),
+            tipe_barang: input.jenis,
+            kuantitas: input.jumlahBarang,
+            satuan_kuantitas: input.satuanBarang.trim(),
+            keterangan: input.keteranganBarang.trim(),
+            barcode: uploadResult.url,
+          })
+          .select("product_id")
+          .single();
 
-      if (productError || !productData) {
-        return {
-          success: false,
-          error: productError?.message ?? "Gagal menyimpan product",
-        };
+        if (productError || !productData) {
+          throw new Error(productError?.message ?? "insert product failed");
+        }
+
+        insertState.productId = String(productData.product_id);
+      } catch {
+        await this.rollbackInputBarang(insertState);
+        return this.buildFailureResult("product");
       }
 
-      const productId = String(productData.product_id);
+      const productId = insertState.productId!;
       const masukCatatan = buildHistoriMasukCatatan(
         input.username,
         input.name,
         now
       );
 
-      const { error: masukError } = await supabase
-        .from(HISTORI_MASUK_TABLE)
-        .insert({
-          product_id: productId,
-          tanggal_masuk: `${input.tanggalMasuk} 00:00:00`,
-          kuantitas_masuk: input.jumlahBarang,
-          catatan: masukCatatan.slice(0, 250),
-        });
+      try {
+        const { error: masukError } = await supabase
+          .from(HISTORI_MASUK_TABLE)
+          .insert({
+            product_id: productId,
+            tanggal_masuk: input.tanggalMasuk,
+            kuantitas_masuk: input.jumlahBarang,
+            catatan: masukCatatan.slice(0, 250),
+          });
 
-      if (masukError) {
-        return { success: false, error: masukError.message };
+        if (masukError) {
+          throw new Error(masukError.message);
+        }
+      } catch {
+        await this.rollbackInputBarang(insertState);
+        return this.buildFailureResult("histori_masuk");
       }
 
       for (const priceRow of input.priceRows) {
-        const { data: hargaData, error: hargaError } = await supabase
-          .from(HARGA_TABLE)
-          .insert({
-            product_id: productId,
-            cust_id: priceRow.cust_id,
-            harga: priceRow.harga,
-            mata_uang: priceRow.currency,
-          })
-          .select("harga_id")
-          .single();
+        let hargaId: string | undefined;
 
-        if (hargaError || !hargaData) {
-          return {
-            success: false,
-            error: hargaError?.message ?? "Gagal menyimpan harga",
-          };
+        try {
+          const { data: hargaData, error: hargaError } = await supabase
+            .from(HARGA_TABLE)
+            .insert({
+              product_id: productId,
+              cust_id: priceRow.cust_id,
+              harga: priceRow.harga,
+              mata_uang: priceRow.currency,
+            })
+            .select("harga_id")
+            .single();
+
+          if (hargaError || !hargaData) {
+            throw new Error(hargaError?.message ?? "insert harga failed");
+          }
+
+          hargaId = String(hargaData.harga_id);
+          insertState.hargaIds.push(hargaId);
+        } catch {
+          await this.rollbackInputBarang(insertState);
+          return this.buildFailureResult("harga");
         }
 
         const hargaCatatan = buildHistoriHargaCatatan(
@@ -179,28 +281,42 @@ export class SupabaseProductRepository implements ProductRepository {
           now
         );
 
-        const { error: histHargaError } = await supabase
-          .from(HISTORI_HARGA_TABLE)
-          .insert({
-            harga_id: String(hargaData.harga_id),
-            catatan: hargaCatatan.slice(0, 250),
-          });
+        try {
+          const { data: histData, error: histHargaError } = await supabase
+            .from(HISTORI_HARGA_TABLE)
+            .insert({
+              harga_id: hargaId,
+              catatan: hargaCatatan.slice(0, 250),
+            })
+            .select("hist_harga_id")
+            .single();
 
-        if (histHargaError) {
-          return { success: false, error: histHargaError.message };
+          if (histHargaError || !histData) {
+            throw new Error(
+              histHargaError?.message ?? "insert histori harga failed"
+            );
+          }
+
+          insertState.histHargaIds.push(String(histData.hist_harga_id));
+        } catch {
+          await this.rollbackInputBarang(insertState);
+          return this.buildFailureResult("histori_harga");
         }
       }
 
       return { success: true, product_id: productId };
     } catch (err) {
-      const message =
-        err instanceof Error && err.name === "AbortError"
-          ? "Request timeout (60 detik)"
-          : err instanceof Error
-            ? err.message
-            : "Terjadi kesalahan tidak terduga";
+      await this.rollbackInputBarang(insertState);
 
-      return { success: false, error: message };
+      if (err instanceof Error && err.name === "AbortError") {
+        return {
+          success: false,
+          errorStage: "product",
+          error: "Request timeout (60 detik)",
+        };
+      }
+
+      return this.buildFailureResult("product");
     }
   }
 }

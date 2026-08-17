@@ -82,8 +82,10 @@ Jalankan **berurutan** di Supabase SQL Editor:
 | `010_admin_ely_harga_security.sql` | RLS harga |
 | `011_create_admin_ely_histori_harga.sql` | Histori harga |
 | `012_admin_ely_histori_harga_security.sql` | RLS histori harga |
+| `013_create_product_barcode_bucket.sql` | Bucket storage `product-barcode-images` |
+| `014_alter_histori_masuk_tanggal_masuk_to_date.sql` | `tanggal_masuk` TIMESTAMP → DATE (YYYY-MM-DD) |
 
-Buat bucket storage `product-barcode-images` di Supabase Dashboard untuk upload barcode.
+Atau buat bucket storage **`product-barcode-images`** manual di Supabase Dashboard → **Storage** → **New bucket** (Public bucket, max file size 5MB).
 
 ### Kolom utama
 

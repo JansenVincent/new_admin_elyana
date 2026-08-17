@@ -58,6 +58,21 @@ export function validateCreateCustomerForm(input: {
 }
 
 /**
+ * Mengembalikan pesan error untuk satu field form tambah customer.
+ */
+export function getCreateCustomerFieldError(
+  field: "custName" | "address" | "frontCode" | "backCode",
+  input: {
+    custName: string;
+    address: string;
+    frontCode: string;
+    backCode: string;
+  }
+): string | undefined {
+  return validateCreateCustomerForm(input)[field];
+}
+
+/**
  * Mengecek apakah form tambah customer valid.
  */
 export function isCreateCustomerFormValid(input: {

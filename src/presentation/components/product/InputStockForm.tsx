@@ -8,8 +8,14 @@ import type {
   ProductJenis,
 } from "@/domain/entities/InputBarang";
 import ErrorPopup from "@/presentation/components/ui/ErrorPopup";
+import ConfirmDialog from "@/presentation/components/ui/ConfirmDialog";
 import LoadingOverlay from "@/presentation/components/ui/LoadingOverlay";
 import { useAuthSession } from "@/shared/hooks/useAuthSession";
+import {
+  areAllCustomersPaired,
+  getAvailableCustomersForRow,
+  useBlurFieldValidation,
+} from "@/shared/hooks/useBlurFieldValidation";
 import {
   CURRENCY_OPTIONS,
   MAX_KETERANGAN_LENGTH,
@@ -18,11 +24,15 @@ import {
   SUPPORTED_BARCODE_IMAGE_EXTENSIONS,
 } from "@/shared/constants/product";
 import {
+  getStep1FieldError,
+  getStep2FieldError,
   hasNoErrors,
   validateBarcodeImage,
+  validatePriceRow,
   validateStep1,
   validateStep2,
   validateStep3,
+  type Step1FieldName,
 } from "@/shared/utils/inputBarangValidation";
 import { getTodayWibDateInputValue } from "@/shared/utils/timestamp";
 
@@ -119,12 +129,22 @@ export default function InputStockForm() {
   const [barcodePreviewUrl, setBarcodePreviewUrl] = useState<string | null>(
     null
   );
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [barcodeError, setBarcodeError] = useState<string | undefined>();
+  const {
+    handleFieldBlur,
+    getFieldError,
+    applySubmitErrors,
+    resetValidation,
+  } = useBlurFieldValidation();
   const [priceRowErrors, setPriceRowErrors] = useState<
     Record<string, Record<string, string>>
   >({});
+  const [blurredPriceFields, setBlurredPriceFields] = useState<
+    Record<string, Set<string>>
+  >({});
   const [isDragging, setIsDragging] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [errorMessage, setErrorMessage] = useState("Gagal menyimpan data");
   const [showSuccess, setShowSuccess] = useState(false);
@@ -158,6 +178,96 @@ export default function InputStockForm() {
   const isStep3Valid = step3Validation.isValid;
   const isStep4Valid = hasNoErrors(step4Errors);
   const canSave = isStep1Valid && isStep2Valid && isStep3Valid && isStep4Valid;
+
+  const step1Values = {
+    namaBarang,
+    jenis,
+    jumlahBarang,
+    satuanBarang,
+    tanggalMasuk,
+  };
+
+  const canAddPriceRow = priceRows.length < activeCustomers.length;
+  const allCustomersPaired = areAllCustomersPaired(
+    priceRows,
+    activeCustomers.length
+  );
+
+  /**
+   * Menangani blur field step 1 dengan validasi langsung.
+   */
+  function handleStep1FieldBlur(field: Step1FieldName) {
+    handleFieldBlur(field, getStep1FieldError(field, step1Values));
+  }
+
+  /**
+   * Menangani blur field keterangan barang (step 2).
+   */
+  function handleKeteranganBlur() {
+    handleFieldBlur("keteranganBarang", getStep2FieldError(keteranganBarang));
+  }
+
+  /**
+   * Mengembalikan error field baris harga jika field sudah di-blur.
+   */
+  function getPriceRowFieldError(
+    rowKey: string,
+    field: string
+  ): string | undefined {
+    if (!blurredPriceFields[rowKey]?.has(field)) {
+      return undefined;
+    }
+    return priceRowErrors[rowKey]?.[field];
+  }
+
+  /**
+   * Menangani blur field baris harga dengan validasi langsung.
+   */
+  function handlePriceRowFieldBlur(
+    rowKey: string,
+    field: "cust_id" | "harga" | "currency"
+  ) {
+    const row = priceRows.find((item) => item.rowKey === rowKey);
+    if (!row) {
+      return;
+    }
+
+    const errors = validatePriceRow(row);
+
+    setBlurredPriceFields((prev) => ({
+      ...prev,
+      [rowKey]: new Set(prev[rowKey] ?? []).add(field),
+    }));
+
+    setPriceRowErrors((prev) => {
+      const rowErr = { ...(prev[rowKey] ?? {}) };
+      if (errors[field]) {
+        rowErr[field] = errors[field];
+      } else {
+        delete rowErr[field];
+      }
+
+      if (Object.keys(rowErr).length === 0) {
+        const next = { ...prev };
+        delete next[rowKey];
+        return next;
+      }
+
+      return { ...prev, [rowKey]: rowErr };
+    });
+  }
+
+  /**
+   * Menandai seluruh field baris harga sebagai touched saat validasi submit step 3.
+   */
+  function markAllPriceRowsTouched(rowErrors: Record<string, Record<string, string>>) {
+    const nextBlurred: Record<string, Set<string>> = {};
+    priceRows.forEach((row) => {
+      nextBlurred[row.rowKey] = new Set(["cust_id", "harga", "currency"]);
+    });
+    setBlurredPriceFields(nextBlurred);
+    setPriceRowErrors(rowErrors);
+  }
 
   /**
    * Memuat customer aktif sekali saat pertama kali masuk step Input Harga.
@@ -215,7 +325,7 @@ export default function InputStockForm() {
     }
 
     const errors = validateBarcodeImage(file);
-    setFieldErrors(errors);
+    setBarcodeError(errors.barcodeImage);
 
     if (hasNoErrors(errors)) {
       setBarcodeImage(file);
@@ -252,11 +362,21 @@ export default function InputStockForm() {
     field: keyof Omit<PriceRowInput, "rowKey">,
     value: string
   ) {
-    setPriceRows((prev) =>
-      prev.map((row) =>
+    setPriceRows((prev) => {
+      const updated = prev.map((row) =>
         row.rowKey === rowKey ? { ...row, [field]: value } : row
-      )
-    );
+      );
+
+      if (field === "cust_id" && value) {
+        return updated.map((row) =>
+          row.rowKey !== rowKey && row.cust_id === value
+            ? { ...row, cust_id: "" }
+            : row
+        );
+      }
+
+      return updated;
+    });
   }
 
   /**
@@ -276,6 +396,11 @@ export default function InputStockForm() {
       delete next[rowKey];
       return next;
     });
+    setBlurredPriceFields((prev) => {
+      const next = { ...prev };
+      delete next[rowKey];
+      return next;
+    });
   }
 
   /**
@@ -284,8 +409,9 @@ export default function InputStockForm() {
   function goToStep(step: number) {
     if (step <= maxStepReached) {
       setCurrentStep(step);
-      setFieldErrors({});
+      resetValidation();
       setPriceRowErrors({});
+      setBlurredPriceFields({});
     }
   }
 
@@ -294,35 +420,36 @@ export default function InputStockForm() {
    */
   function handleNextStep() {
     if (currentStep === 1) {
-      setFieldErrors(step1Errors);
+      applySubmitErrors(step1Errors);
       if (!isStep1Valid) {
         return;
       }
       setMaxStepReached((prev) => Math.max(prev, 2));
       setCurrentStep(2);
-      setFieldErrors({});
+      resetValidation();
       return;
     }
 
     if (currentStep === 2) {
-      setFieldErrors(step2Errors);
+      applySubmitErrors(step2Errors);
       if (!isStep2Valid) {
         return;
       }
       setMaxStepReached((prev) => Math.max(prev, 3));
       setCurrentStep(3);
-      setFieldErrors({});
+      resetValidation();
       return;
     }
 
     if (currentStep === 3) {
-      setPriceRowErrors(step3Validation.rowErrors);
+      markAllPriceRowsTouched(step3Validation.rowErrors);
       if (!isStep3Valid) {
         return;
       }
       setMaxStepReached((prev) => Math.max(prev, 4));
       setCurrentStep(4);
       setPriceRowErrors({});
+      setBlurredPriceFields({});
     }
   }
 
@@ -340,32 +467,30 @@ export default function InputStockForm() {
     setKeteranganBarang("");
     setPriceRows([]);
     setBarcodeImage(null);
-    setFieldErrors({});
+    setBarcodeError(undefined);
+    resetValidation();
     setPriceRowErrors({});
+    setBlurredPriceFields({});
+    setShowSaveConfirm(false);
     setShowSuccess(false);
     customersFetchedRef.current = false;
     setActiveCustomers([]);
   }
 
   /**
-   * Menyimpan data Input Barang ke database secara serial melalui API.
+   * Membuka popup konfirmasi sebelum menyimpan data Input Barang.
    */
-  async function handleSave() {
+  function handleOpenSaveConfirm() {
     const errors = {
-      ...validateStep1({
-        namaBarang,
-        jenis,
-        jumlahBarang,
-        satuanBarang,
-        tanggalMasuk,
-      }),
+      ...validateStep1(step1Values),
       ...validateStep2(keteranganBarang),
       ...validateBarcodeImage(barcodeImage),
     };
     const step3Result = validateStep3(priceRows);
 
-    setFieldErrors(errors);
-    setPriceRowErrors(step3Result.rowErrors);
+    applySubmitErrors(errors);
+    markAllPriceRowsTouched(step3Result.rowErrors);
+    setBarcodeError(errors.barcodeImage);
 
     if (
       !hasNoErrors(errors) ||
@@ -374,6 +499,19 @@ export default function InputStockForm() {
       !jenis ||
       !user
     ) {
+      return;
+    }
+
+    setShowSaveConfirm(true);
+  }
+
+  /**
+   * Menyimpan data Input Barang ke database secara serial melalui API.
+   */
+  async function handleConfirmSave() {
+    setShowSaveConfirm(false);
+
+    if (!barcodeImage || !jenis || !user) {
       return;
     }
 
@@ -487,12 +625,13 @@ export default function InputStockForm() {
                     type="text"
                     value={namaBarang}
                     onChange={(event) => setNamaBarang(event.target.value)}
+                    onBlur={() => handleStep1FieldBlur("namaBarang")}
                     placeholder="Masukkan nama barang"
                     className={inputClassName}
                   />
-                  {fieldErrors.namaBarang && (
+                  {getFieldError("namaBarang") && (
                     <p className="mt-1.5 text-sm text-red-600">
-                      {fieldErrors.namaBarang}
+                      {getFieldError("namaBarang")}
                     </p>
                   )}
                 </div>
@@ -510,6 +649,7 @@ export default function InputStockForm() {
                     onChange={(event) =>
                       setJenis(event.target.value as ProductJenis | "")
                     }
+                    onBlur={() => handleStep1FieldBlur("jenis")}
                     className={inputClassName}
                   >
                     <option value="" disabled>
@@ -521,9 +661,9 @@ export default function InputStockForm() {
                       </option>
                     ))}
                   </select>
-                  {fieldErrors.jenis && (
+                  {getFieldError("jenis") && (
                     <p className="mt-1.5 text-sm text-red-600">
-                      {fieldErrors.jenis}
+                      {getFieldError("jenis")}
                     </p>
                   )}
                 </div>
@@ -547,12 +687,13 @@ export default function InputStockForm() {
                         setJumlahBarang(value);
                       }
                     }}
+                    onBlur={() => handleStep1FieldBlur("jumlahBarang")}
                     placeholder="Masukkan jumlah barang"
                     className={inputClassName}
                   />
-                  {fieldErrors.jumlahBarang && (
+                  {getFieldError("jumlahBarang") && (
                     <p className="mt-1.5 text-sm text-red-600">
-                      {fieldErrors.jumlahBarang}
+                      {getFieldError("jumlahBarang")}
                     </p>
                   )}
                 </div>
@@ -569,13 +710,14 @@ export default function InputStockForm() {
                     type="text"
                     value={satuanBarang}
                     onChange={(event) => setSatuanBarang(event.target.value)}
+                    onBlur={() => handleStep1FieldBlur("satuanBarang")}
                     placeholder="Contoh: Pcs, Set"
                     maxLength={MAX_SATUAN_BARANG_LENGTH}
                     className={inputClassName}
                   />
-                  {fieldErrors.satuanBarang && (
+                  {getFieldError("satuanBarang") && (
                     <p className="mt-1.5 text-sm text-red-600">
-                      {fieldErrors.satuanBarang}
+                      {getFieldError("satuanBarang")}
                     </p>
                   )}
                 </div>
@@ -593,11 +735,12 @@ export default function InputStockForm() {
                     value={tanggalMasuk}
                     max={getTodayWibDateInputValue()}
                     onChange={(event) => setTanggalMasuk(event.target.value)}
+                    onBlur={() => handleStep1FieldBlur("tanggalMasuk")}
                     className={inputClassName}
                   />
-                  {fieldErrors.tanggalMasuk && (
+                  {getFieldError("tanggalMasuk") && (
                     <p className="mt-1.5 text-sm text-red-600">
-                      {fieldErrors.tanggalMasuk}
+                      {getFieldError("tanggalMasuk")}
                     </p>
                   )}
                 </div>
@@ -616,15 +759,16 @@ export default function InputStockForm() {
                   id="keteranganBarang"
                   value={keteranganBarang}
                   onChange={(event) => setKeteranganBarang(event.target.value)}
+                  onBlur={handleKeteranganBlur}
                   placeholder={`Masukkan keterangan barang (maks. ${MAX_KETERANGAN_LENGTH} karakter)`}
                   rows={6}
                   maxLength={MAX_KETERANGAN_LENGTH}
                   className={`${inputClassName} resize-y`}
                 />
                 <div className="mt-1.5 flex items-center justify-between gap-2">
-                  {fieldErrors.keteranganBarang ? (
+                  {getFieldError("keteranganBarang") ? (
                     <p className="text-sm text-red-600">
-                      {fieldErrors.keteranganBarang}
+                      {getFieldError("keteranganBarang")}
                     </p>
                   ) : (
                     <span />
@@ -650,7 +794,11 @@ export default function InputStockForm() {
                 ) : (
                   <>
                     {priceRows.map((row, index) => {
-                      const rowError = priceRowErrors[row.rowKey] ?? {};
+                      const availableCustomers = getAvailableCustomersForRow(
+                        row.rowKey,
+                        priceRows,
+                        activeCustomers
+                      );
 
                       return (
                         <div
@@ -689,12 +837,15 @@ export default function InputStockForm() {
                                     event.target.value
                                   )
                                 }
+                                onBlur={() =>
+                                  handlePriceRowFieldBlur(row.rowKey, "cust_id")
+                                }
                                 className={inputClassName}
                               >
                                 <option value="" disabled>
                                   Pilih customer
                                 </option>
-                                {activeCustomers.map((customer) => (
+                                {availableCustomers.map((customer) => (
                                   <option
                                     key={customer.cust_id}
                                     value={customer.cust_id}
@@ -703,9 +854,9 @@ export default function InputStockForm() {
                                   </option>
                                 ))}
                               </select>
-                              {rowError.cust_id && (
+                              {getPriceRowFieldError(row.rowKey, "cust_id") && (
                                 <p className="mt-1.5 text-sm text-red-600">
-                                  {rowError.cust_id}
+                                  {getPriceRowFieldError(row.rowKey, "cust_id")}
                                 </p>
                               )}
                             </div>
@@ -727,6 +878,9 @@ export default function InputStockForm() {
                                       "currency",
                                       event.target.value
                                     )
+                                  }
+                                  onBlur={() =>
+                                    handlePriceRowFieldBlur(row.rowKey, "currency")
                                   }
                                   className={`${inputClassName} col-span-2`}
                                   aria-label="Mata uang"
@@ -750,13 +904,18 @@ export default function InputStockForm() {
                                       event.target.value
                                     )
                                   }
+                                  onBlur={() =>
+                                    handlePriceRowFieldBlur(row.rowKey, "harga")
+                                  }
                                   placeholder="Masukkan harga barang"
                                   className={`${inputClassName} col-span-3`}
                                 />
                               </div>
-                              {(rowError.harga || rowError.currency) && (
+                              {(getPriceRowFieldError(row.rowKey, "harga") ||
+                                getPriceRowFieldError(row.rowKey, "currency")) && (
                                 <p className="mt-1.5 text-sm text-red-600">
-                                  {rowError.harga ?? rowError.currency}
+                                  {getPriceRowFieldError(row.rowKey, "harga") ??
+                                    getPriceRowFieldError(row.rowKey, "currency")}
                                 </p>
                               )}
                             </div>
@@ -765,10 +924,17 @@ export default function InputStockForm() {
                       );
                     })}
 
+                    {allCustomersPaired && (
+                      <p className="text-center text-sm font-medium text-slate-600">
+                        Semua Customer sudah di pasangkan harga
+                      </p>
+                    )}
+
                     <button
                       type="button"
                       onClick={addPriceRow}
-                      className="w-full rounded-xl border border-dashed border-slate-300 bg-white py-3 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+                      disabled={!canAddPriceRow}
+                      className="w-full rounded-xl border border-dashed border-slate-300 bg-white py-3 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       + Tambah Customer & Harga
                     </button>
@@ -824,9 +990,9 @@ export default function InputStockForm() {
                   />
                 </div>
 
-                {fieldErrors.barcodeImage && (
+                {barcodeError && (
                   <p className="mt-2 text-sm text-red-600">
-                    {fieldErrors.barcodeImage}
+                    {barcodeError}
                   </p>
                 )}
 
@@ -866,7 +1032,7 @@ export default function InputStockForm() {
             ) : (
               <button
                 type="button"
-                onClick={handleSave}
+                onClick={handleOpenSaveConfirm}
                 disabled={!canSave || isSaving}
                 className="rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
               >
@@ -876,6 +1042,14 @@ export default function InputStockForm() {
           </div>
         </div>
       </section>
+
+      <ConfirmDialog
+        visible={showSaveConfirm}
+        message="Apakah Anda yakin pengisian sudah sesuai? Lanjut menyimpan?"
+        onClose={() => setShowSaveConfirm(false)}
+        onConfirm={handleConfirmSave}
+        isLoading={isSaving}
+      />
 
       <ErrorPopup
         visible={showErrorPopup}

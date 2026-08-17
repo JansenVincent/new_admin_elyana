@@ -38,11 +38,19 @@ export interface SaveInputBarangInput {
   name: string;
 }
 
+/** Tahap penyimpanan Input Barang yang gagal. */
+export type InputBarangSaveErrorStage =
+  | "product"
+  | "histori_masuk"
+  | "harga"
+  | "histori_harga";
+
 /** Hasil operasi penyimpanan Input Barang. */
 export interface SaveInputBarangResult {
   success: boolean;
   product_id?: string;
   error?: string;
+  errorStage?: InputBarangSaveErrorStage;
 }
 
 /** Product yang tersimpan di Admin_Ely_Product. */

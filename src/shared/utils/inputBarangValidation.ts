@@ -63,6 +63,37 @@ export function validateStep1(input: {
   return errors;
 }
 
+/** Field yang dapat divalidasi pada step 1 Input Barang. */
+export type Step1FieldName =
+  | "namaBarang"
+  | "jenis"
+  | "jumlahBarang"
+  | "satuanBarang"
+  | "tanggalMasuk";
+
+/**
+ * Mengembalikan pesan error untuk satu field step 1 Input Barang.
+ */
+export function getStep1FieldError(
+  field: Step1FieldName,
+  input: {
+    namaBarang: string;
+    jenis: string;
+    jumlahBarang: string;
+    satuanBarang: string;
+    tanggalMasuk: string;
+  }
+): string | undefined {
+  return validateStep1(input)[field];
+}
+
+/**
+ * Mengembalikan pesan error untuk field keterangan barang (step 2).
+ */
+export function getStep2FieldError(keteranganBarang: string): string | undefined {
+  return validateStep2(keteranganBarang).keteranganBarang;
+}
+
 /**
  * Memvalidasi field step 2 form Input Barang (keterangan).
  */

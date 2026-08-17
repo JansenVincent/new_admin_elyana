@@ -8,10 +8,12 @@ import LoadingOverlay from "@/presentation/components/ui/LoadingOverlay";
 import PasswordField from "@/presentation/components/ui/PasswordField";
 import { MAX_ACCOUNT_FIELD_LENGTH } from "@/shared/constants/account";
 import {
+  getAddUserFieldError,
   getPasswordRuleStatus,
   isAddUserFormValid,
   validateAddUserForm,
 } from "@/shared/utils/accountValidation";
+import { useBlurFieldValidation } from "@/shared/hooks/useBlurFieldValidation";
 
 const inputClassName =
   "w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-slate-500 focus:bg-white focus:ring-2 focus:ring-slate-200";
@@ -43,7 +45,12 @@ export default function AddUserForm() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [ulangiPassword, setUlangiPassword] = useState("");
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const {
+    handleFieldBlur,
+    getFieldError,
+    applySubmitErrors,
+    resetValidation,
+  } = useBlurFieldValidation();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showErrorPopup, setShowErrorPopup] = useState(false);
@@ -80,8 +87,42 @@ export default function AddUserForm() {
     setUsername("");
     setPassword("");
     setUlangiPassword("");
-    setFieldErrors({});
+    resetValidation();
     setShowSuccess(false);
+  }
+
+  /** Nilai form untuk validasi field. */
+  const formValues = { nama, username, password, ulangiPassword };
+
+  /**
+   * Menangani blur field nama dengan validasi langsung.
+   */
+  function handleNamaBlur() {
+    handleFieldBlur("nama", getAddUserFieldError("nama", formValues));
+  }
+
+  /**
+   * Menangani blur field username dengan validasi langsung.
+   */
+  function handleUsernameBlur() {
+    handleFieldBlur("username", getAddUserFieldError("username", formValues));
+  }
+
+  /**
+   * Menangani blur field password dengan validasi langsung.
+   */
+  function handlePasswordBlur() {
+    handleFieldBlur("password", getAddUserFieldError("password", formValues));
+  }
+
+  /**
+   * Menangani blur field ulangi password dengan validasi langsung.
+   */
+  function handleUlangiPasswordBlur() {
+    handleFieldBlur(
+      "ulangiPassword",
+      getAddUserFieldError("ulangiPassword", formValues)
+    );
   }
 
   /**
@@ -95,7 +136,7 @@ export default function AddUserForm() {
       ulangiPassword,
     });
 
-    setFieldErrors(errors);
+    applySubmitErrors(errors);
 
     if (Object.keys(errors).length > 0) {
       return;
@@ -163,12 +204,13 @@ export default function AddUserForm() {
                 onChange={(event) =>
                   handleLimitedTextChange(setNama, event.target.value)
                 }
+                onBlur={handleNamaBlur}
                 maxLength={MAX_ACCOUNT_FIELD_LENGTH}
                 placeholder="Contoh: Budi Santoso"
                 className={inputClassName}
               />
-              {fieldErrors.nama && (
-                <p className="mt-1.5 text-sm text-red-600">{fieldErrors.nama}</p>
+              {getFieldError("nama") && (
+                <p className="mt-1.5 text-sm text-red-600">{getFieldError("nama")}</p>
               )}
             </div>
 
@@ -186,6 +228,7 @@ export default function AddUserForm() {
                 onChange={(event) =>
                   handleLimitedTextChange(setUsername, event.target.value)
                 }
+                onBlur={handleUsernameBlur}
                 maxLength={MAX_ACCOUNT_FIELD_LENGTH}
                 placeholder="Contoh: budi123"
                 className={inputClassName}
@@ -193,9 +236,9 @@ export default function AddUserForm() {
               <p className="mt-1.5 text-xs text-slate-500">
                 Minimal 6 karakter, kombinasi huruf dan angka (maks. 30 karakter).
               </p>
-              {fieldErrors.username && (
+              {getFieldError("username") && (
                 <p className="mt-1.5 text-sm text-red-600">
-                  {fieldErrors.username}
+                  {getFieldError("username")}
                 </p>
               )}
             </div>
@@ -206,8 +249,9 @@ export default function AddUserForm() {
                 label="Password"
                 value={password}
                 onChange={setPassword}
+                onBlur={handlePasswordBlur}
                 placeholder="Password123"
-                error={fieldErrors.password}
+                error={getFieldError("password")}
               />
 
               <ul className="mt-3 space-y-1.5">
@@ -235,8 +279,9 @@ export default function AddUserForm() {
               label="Ulangi Password"
               value={ulangiPassword}
               onChange={setUlangiPassword}
+              onBlur={handleUlangiPasswordBlur}
               placeholder="Password123"
-              error={fieldErrors.ulangiPassword}
+              error={getFieldError("ulangiPassword")}
             />
 
             <button

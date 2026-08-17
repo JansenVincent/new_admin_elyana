@@ -4,7 +4,7 @@ CREATE SEQUENCE IF NOT EXISTS admin_ely_masuk_id_seq START WITH 1 INCREMENT BY 1
 CREATE TABLE IF NOT EXISTS "Admin_Ely_Histori_Masuk_Product" (
   masuk_id TEXT PRIMARY KEY,
   product_id TEXT NOT NULL REFERENCES "Admin_Ely_Product"(product_id) ON DELETE RESTRICT,
-  tanggal_masuk TIMESTAMP NOT NULL,
+  tanggal_masuk DATE NOT NULL,
   kuantitas_masuk INTEGER NOT NULL CHECK (kuantitas_masuk > 0),
   catatan TEXT NOT NULL CHECK (char_length(catatan) <= 250)
 );

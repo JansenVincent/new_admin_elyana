@@ -20,6 +20,8 @@ interface PasswordFieldProps {
   autoComplete?: string;
   /** Panjang maksimum karakter input (opsional). */
   maxLength?: number;
+  /** Callback saat field kehilangan fokus. */
+  onBlur?: () => void;
 }
 
 /**
@@ -82,6 +84,7 @@ export default function PasswordField({
   error,
   autoComplete = "new-password",
   maxLength = MAX_ACCOUNT_FIELD_LENGTH,
+  onBlur,
 }: PasswordFieldProps) {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -106,6 +109,7 @@ export default function PasswordField({
           type={isVisible ? "text" : "password"}
           value={value}
           onChange={handleChange}
+          onBlur={onBlur}
           maxLength={maxLength}
           autoComplete={autoComplete}
           placeholder={placeholder}
