@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuthSession } from "@/shared/hooks/useAuthSession";
-import { toLowerCaseText, toPascalCase } from "@/shared/utils/stringFormat";
+import { toLowerCaseText, toTitleCase } from "@/shared/utils/stringFormat";
 
 /**
  * Halaman beranda dashboard setelah login berhasil.
@@ -13,7 +13,7 @@ export default function HomePage() {
     return null;
   }
 
-  const displayName = toPascalCase(user.name);
+  const displayName = toTitleCase(user.name);
   const displayRole = toLowerCaseText(user.role);
 
   return (

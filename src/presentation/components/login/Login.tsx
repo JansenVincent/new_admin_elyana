@@ -106,7 +106,7 @@ export default function Login() {
                 label="Password"
                 value={password}
                 onChange={setPassword}
-                placeholder="Contoh: Elyana123"
+                placeholder="Password123"
                 autoComplete="current-password"
                 maxLength={undefined}
               />

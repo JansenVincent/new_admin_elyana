@@ -161,7 +161,7 @@ export default function DeleteUserList() {
                   </th>
                   <th
                     scope="col"
-                    className="px-4 py-3 text-right text-sm font-semibold text-slate-700 md:px-6"
+                    className="px-4 py-3 text-center text-sm font-semibold text-slate-700 md:px-6"
                   >
                     Action
                   </th>
@@ -187,7 +187,7 @@ export default function DeleteUserList() {
                     <td className="px-4 py-4 text-sm text-slate-600 md:px-6">
                       {user.username}
                     </td>
-                    <td className="px-4 py-4 text-right md:px-6">
+                    <td className="px-4 py-4 text-center md:px-6">
                       <button
                         type="button"
                         onClick={() => handleOpenDeleteConfirm(user)}

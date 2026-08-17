@@ -138,6 +138,47 @@ function CloseIcon() {
 }
 
 /**
+ * Logo placeholder brand WIRA MAKMUR AKSESORIS (ganti URL saat asset Google Drive tersedia).
+ */
+function BrandLogo() {
+  return (
+    <div
+      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white sm:h-10 sm:w-10"
+      aria-hidden="true"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        className="h-5 w-5 sm:h-6 sm:w-6"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M3 9l9-6 9 6v11a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1V9z"
+        />
+      </svg>
+    </div>
+  );
+}
+
+/**
+ * Label brand di header dashboard.
+ */
+function BrandLabel() {
+  return (
+    <span
+      className="truncate text-[11px] font-bold uppercase leading-tight tracking-wide text-slate-900 sm:text-xs md:text-sm md:whitespace-normal"
+      title="WIRA MAKMUR AKSESORIS"
+    >
+      WIRA MAKMUR AKSESORIS
+    </span>
+  );
+}
+
+/**
  * Ikon chevron untuk indikator expand/collapse menu.
  */
 function ChevronIcon({ expanded }: { expanded: boolean }) {
@@ -275,7 +316,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             onClick={closeSidebar}
             className="text-lg font-bold text-slate-900 transition hover:text-slate-600"
           >
-            Dashboard Admin Elyana
+            Dashboard Admin
           </Link>
 
           <button
@@ -365,22 +406,29 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       <div className="flex min-h-screen min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-30 border-b border-slate-200 bg-white">
-          <div className="flex items-center justify-between gap-3 px-4 py-4 md:justify-end md:px-6">
-            <button
-              type="button"
-              onClick={toggleSidebar}
-              className="inline-flex items-center justify-center rounded-lg border border-slate-300 p-2 text-slate-700 transition hover:bg-slate-100 md:hidden"
-              aria-controls={sidebarId}
-              aria-expanded={isSidebarOpen}
-              aria-label={isSidebarOpen ? "Tutup menu" : "Buka menu"}
-            >
-              <MenuIcon />
-            </button>
+          <div className="flex items-center justify-between gap-2 px-4 py-3 md:gap-4 md:px-6">
+            <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+              <button
+                type="button"
+                onClick={toggleSidebar}
+                className="inline-flex shrink-0 items-center justify-center rounded-lg border border-slate-300 p-2 text-slate-700 transition hover:bg-slate-100 md:hidden"
+                aria-controls={sidebarId}
+                aria-expanded={isSidebarOpen}
+                aria-label={isSidebarOpen ? "Tutup menu" : "Buka menu"}
+              >
+                <MenuIcon />
+              </button>
+
+              <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+                <BrandLogo />
+                <BrandLabel />
+              </div>
+            </div>
 
             <button
               type="button"
               onClick={handleLogout}
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+              className="shrink-0 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 sm:px-4"
             >
               Logout
             </button>

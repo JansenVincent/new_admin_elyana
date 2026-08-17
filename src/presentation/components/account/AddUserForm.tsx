@@ -206,7 +206,7 @@ export default function AddUserForm() {
                 label="Password"
                 value={password}
                 onChange={setPassword}
-                placeholder="Contoh: Elyana123"
+                placeholder="Password123"
                 error={fieldErrors.password}
               />
 
@@ -235,7 +235,7 @@ export default function AddUserForm() {
               label="Ulangi Password"
               value={ulangiPassword}
               onChange={setUlangiPassword}
-              placeholder="Contoh: Elyana123"
+              placeholder="Password123"
               error={fieldErrors.ulangiPassword}
             />
 

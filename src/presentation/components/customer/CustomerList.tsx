@@ -420,7 +420,7 @@ export default function CustomerList() {
                   <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 md:px-6">
                     Alamat Customer
                   </th>
-                  <th className="px-4 py-3 text-right text-sm font-semibold text-slate-700 md:px-6">
+                  <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700 md:px-6">
                     Action
                   </th>
                 </tr>
@@ -457,8 +457,8 @@ export default function CustomerList() {
                       <td className="px-4 py-4 text-sm text-slate-600 md:px-6">
                         {customer.address ?? "-"}
                       </td>
-                      <td className="px-4 py-4 text-right md:px-6">
-                        <div className="flex justify-end gap-2">
+                      <td className="px-4 py-4 text-center md:px-6">
+                        <div className="flex flex-wrap justify-center gap-2">
                           <button
                             type="button"
                             onClick={() => handleOpenEdit(customer)}
