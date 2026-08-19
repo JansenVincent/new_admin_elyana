@@ -3,6 +3,11 @@ import type {
   ProductJenis,
   SaveInputBarangResult,
 } from "@/domain/entities/InputBarang";
+import type {
+  GetMyProductDetailResult,
+  ListMyProductsParams,
+  ListMyProductsResult,
+} from "@/domain/entities/MyProduct";
 import { PRODUCT_JENIS_OPTIONS } from "@/shared/constants/product";
 
 /**
@@ -62,6 +67,35 @@ export class ProductService {
     });
 
     return (await response.json()) as SaveInputBarangResult;
+  }
+
+  /**
+   * Mengambil daftar product untuk halaman My Product dengan paginasi.
+   */
+  async listMyProducts(
+    params: ListMyProductsParams
+  ): Promise<ListMyProductsResult> {
+    const searchParams = new URLSearchParams({
+      page: String(params.page),
+      limit: String(params.limit),
+    });
+
+    if (params.search?.trim()) {
+      searchParams.set("search", params.search.trim());
+    }
+
+    const response = await fetch(`/api/products/my-product?${searchParams.toString()}`);
+    return (await response.json()) as ListMyProductsResult;
+  }
+
+  /**
+   * Mengambil detail product untuk halaman My Product.
+   */
+  async getMyProductDetail(productId: string): Promise<GetMyProductDetailResult> {
+    const response = await fetch(
+      `/api/products/my-product/${encodeURIComponent(productId)}`
+    );
+    return (await response.json()) as GetMyProductDetailResult;
   }
 }
 

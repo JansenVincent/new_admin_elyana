@@ -3,9 +3,14 @@ import type {
   SaveInputBarangInput,
   SaveInputBarangResult,
 } from "@/domain/entities/InputBarang";
+import type {
+  GetMyProductDetailResult,
+  ListMyProductsParams,
+  ListMyProductsResult,
+} from "@/domain/entities/MyProduct";
 
 /**
- * Kontrak repository untuk operasi product Input Barang.
+ * Kontrak repository untuk operasi product.
  */
 export interface ProductRepository {
   /**
@@ -21,4 +26,14 @@ export interface ProductRepository {
    * Menyimpan data Input Barang secara serial ke beberapa tabel terkait.
    */
   saveInputBarang(input: SaveInputBarangInput): Promise<SaveInputBarangResult>;
+
+  /**
+   * Mengambil daftar product untuk halaman My Product dengan paginasi.
+   */
+  listMyProducts(params: ListMyProductsParams): Promise<ListMyProductsResult>;
+
+  /**
+   * Mengambil detail product beserta harga dan histori barang.
+   */
+  getMyProductDetail(productId: string): Promise<GetMyProductDetailResult>;
 }

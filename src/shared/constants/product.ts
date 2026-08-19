@@ -16,6 +16,9 @@ export const HISTORI_HARGA_TABLE = "Admin_Ely_Histori_Harga";
 /** Nama bucket storage untuk gambar barcode product. */
 export const PRODUCT_BARCODE_BUCKET = "product-barcode-images";
 
+/** Jumlah baris product per halaman pada My Product. */
+export const MY_PRODUCT_PAGE_SIZE = 10;
+
 /** @deprecated Gunakan PRODUCT_TABLE. Tabel lama Input Stock sebelum refactor flow. */
 export const PRODUCT_STOCK_TABLE = "Admin_Ely_Product_Stock";
 

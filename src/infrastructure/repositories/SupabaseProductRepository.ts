@@ -5,10 +5,20 @@ import type {
   SaveInputBarangInput,
   SaveInputBarangResult,
 } from "@/domain/entities/InputBarang";
+import type {
+  GetMyProductDetailResult,
+  ListMyProductsParams,
+  ListMyProductsResult,
+  MyProductDetail,
+  MyProductHistoriBarangEntry,
+  MyProductListItem,
+  MyProductPriceByCustomer,
+} from "@/domain/entities/MyProduct";
 import { getSupabaseServerClient } from "@/infrastructure/supabase/serverClient";
 import {
   HARGA_TABLE,
   HISTORI_HARGA_TABLE,
+  HISTORI_KELUAR_TABLE,
   HISTORI_MASUK_TABLE,
   INPUT_BARANG_ERROR_BARCODE_BUCKET,
   INPUT_BARANG_ERROR_BARCODE_UPLOAD,
@@ -317,6 +327,205 @@ export class SupabaseProductRepository implements ProductRepository {
       }
 
       return this.buildFailureResult("product");
+    }
+  }
+
+  /**
+   * Mengambil daftar product untuk halaman My Product dengan paginasi dan pencarian.
+   */
+  async listMyProducts(
+    params: ListMyProductsParams
+  ): Promise<ListMyProductsResult> {
+    try {
+      const supabase = getSupabaseServerClient();
+      const page = Math.max(1, params.page);
+      const limit = Math.max(1, params.limit);
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+
+      let query = supabase
+        .from(PRODUCT_TABLE)
+        .select("product_id, nama_barang", { count: "exact" })
+        .order("nama_barang", { ascending: true });
+
+      if (params.search?.trim()) {
+        query = query.ilike("nama_barang", `%${params.search.trim()}%`);
+      }
+
+      const { data, error, count } = await query.range(from, to);
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      const total = count ?? 0;
+      const totalPages = Math.max(1, Math.ceil(total / limit));
+      const safePage = total === 0 ? 1 : Math.min(page, totalPages);
+
+      const products: MyProductListItem[] = (data ?? []).map((row) => ({
+        product_id: String(row.product_id),
+        nama_barang: String(row.nama_barang ?? ""),
+      }));
+
+      return {
+        success: true,
+        products,
+        total,
+        page: safePage,
+        totalPages,
+      };
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Terjadi kesalahan tidak terduga";
+      return { success: false, error: message };
+    }
+  }
+
+  /**
+   * Mengambil detail product beserta harga per customer dan histori barang.
+   */
+  async getMyProductDetail(productId: string): Promise<GetMyProductDetailResult> {
+    try {
+      const supabase = getSupabaseServerClient();
+
+      const { data: productRow, error: productError } = await supabase
+        .from(PRODUCT_TABLE)
+        .select("product_id, nama_barang, kuantitas, satuan_kuantitas")
+        .eq("product_id", productId)
+        .maybeSingle();
+
+      if (productError) {
+        return { success: false, error: productError.message };
+      }
+
+      if (!productRow) {
+        return { success: false, error: "Product tidak ditemukan" };
+      }
+
+      const { data: hargaRows, error: hargaError } = await supabase
+        .from(HARGA_TABLE)
+        .select(
+          `
+          harga_id,
+          harga,
+          mata_uang,
+          Admin_Ely_Customer ( cust_name )
+        `
+        )
+        .eq("product_id", productId);
+
+      if (hargaError) {
+        return { success: false, error: hargaError.message };
+      }
+
+      const hargaIds = (hargaRows ?? []).map((row) => String(row.harga_id));
+
+      let historiHargaRows: Array<{
+        harga_id: string;
+        catatan: string;
+        hist_harga_id: string;
+      }> = [];
+
+      if (hargaIds.length > 0) {
+        const { data: historiData, error: historiHargaError } = await supabase
+          .from(HISTORI_HARGA_TABLE)
+          .select("harga_id, catatan, hist_harga_id")
+          .in("harga_id", hargaIds)
+          .order("hist_harga_id", { ascending: true });
+
+        if (historiHargaError) {
+          return { success: false, error: historiHargaError.message };
+        }
+
+        historiHargaRows = (historiData ?? []).map((row) => ({
+          harga_id: String(row.harga_id),
+          catatan: String(row.catatan ?? ""),
+          hist_harga_id: String(row.hist_harga_id),
+        }));
+      }
+
+      const historiByHargaId = new Map<string, string[]>();
+      historiHargaRows.forEach((row) => {
+        const logs = historiByHargaId.get(row.harga_id) ?? [];
+        logs.push(row.catatan);
+        historiByHargaId.set(row.harga_id, logs);
+      });
+
+      const pricesByCustomer: MyProductPriceByCustomer[] = (hargaRows ?? [])
+        .map((row) => {
+          const customer = row.Admin_Ely_Customer as
+            | { cust_name: string }
+            | { cust_name: string }[]
+            | null;
+
+          const custName = Array.isArray(customer)
+            ? customer[0]?.cust_name
+            : customer?.cust_name;
+
+          return {
+            cust_name: String(custName ?? "-"),
+            mata_uang: String(row.mata_uang ?? "IDR"),
+            harga: Number(row.harga),
+            historiLogs: (historiByHargaId.get(String(row.harga_id)) ?? []).map(
+              (catatan) => ({ catatan })
+            ),
+          };
+        })
+        .sort((a, b) => a.cust_name.localeCompare(b.cust_name, "id"));
+
+      const { data: masukRows, error: masukError } = await supabase
+        .from(HISTORI_MASUK_TABLE)
+        .select("tanggal_masuk, kuantitas_masuk, catatan")
+        .eq("product_id", productId);
+
+      if (masukError) {
+        return { success: false, error: masukError.message };
+      }
+
+      const { data: keluarRows, error: keluarError } = await supabase
+        .from(HISTORI_KELUAR_TABLE)
+        .select("tanggal_keluar, kuantitas_keluar, catatan")
+        .eq("product_id", productId);
+
+      if (keluarError) {
+        return { success: false, error: keluarError.message };
+      }
+
+      const satuan = String(productRow.satuan_kuantitas ?? "");
+
+      const historiBarang: MyProductHistoriBarangEntry[] = [
+        ...(masukRows ?? []).map((row) => ({
+          tanggal: String(row.tanggal_masuk).slice(0, 10),
+          quantityPrefix: "+" as const,
+          quantity: Number(row.kuantitas_masuk),
+          satuan_kuantitas: satuan,
+          catatan: String(row.catatan ?? ""),
+          type: "masuk" as const,
+        })),
+        ...(keluarRows ?? []).map((row) => ({
+          tanggal: String(row.tanggal_keluar).slice(0, 10),
+          quantityPrefix: "-" as const,
+          quantity: Number(row.kuantitas_keluar),
+          satuan_kuantitas: satuan,
+          catatan: String(row.catatan ?? ""),
+          type: "keluar" as const,
+        })),
+      ].sort((a, b) => a.tanggal.localeCompare(b.tanggal));
+
+      const product: MyProductDetail = {
+        product_id: String(productRow.product_id),
+        nama_barang: String(productRow.nama_barang ?? ""),
+        kuantitas: Number(productRow.kuantitas),
+        satuan_kuantitas: satuan,
+        pricesByCustomer,
+        historiBarang,
+      };
+
+      return { success: true, product };
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Terjadi kesalahan tidak terduga";
+      return { success: false, error: message };
     }
   }
 }
