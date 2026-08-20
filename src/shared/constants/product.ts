@@ -19,6 +19,28 @@ export const PRODUCT_BARCODE_BUCKET = "product-barcode-images";
 /** Jumlah baris product per halaman pada My Product. */
 export const MY_PRODUCT_PAGE_SIZE = 10;
 
+/** Panjang maksimum catatan edit kuantitas My Product. */
+export const MAX_EDIT_KUANTITAS_CATATAN_LENGTH = 200;
+
+/** Pesan error saat gagal update kuantitas di Admin_Ely_Product. */
+export const UPDATE_KUANTITAS_ERROR_PRODUCT =
+  "Gagal menyimpan data 'Product'. Silakan coba beberapa saat lagi";
+
+/** Pesan error saat gagal insert histori masuk saat edit kuantitas. */
+export const UPDATE_KUANTITAS_ERROR_HISTORI_MASUK =
+  "Gagal menyimpan data 'Histori Product'. Silakan coba beberapa saat lagi";
+
+/** Pesan error saat gagal insert histori keluar saat edit kuantitas. */
+export const UPDATE_KUANTITAS_ERROR_HISTORI_KELUAR =
+  "Gagal menyimpan data 'Histori Keluar Product'. Silakan coba beberapa saat lagi";
+
+/** Memetakan tahap error update kuantitas ke pesan popup. */
+export const UPDATE_KUANTITAS_ERROR_MESSAGES = {
+  product: UPDATE_KUANTITAS_ERROR_PRODUCT,
+  histori_masuk: UPDATE_KUANTITAS_ERROR_HISTORI_MASUK,
+  histori_keluar: UPDATE_KUANTITAS_ERROR_HISTORI_KELUAR,
+} as const;
+
 /** @deprecated Gunakan PRODUCT_TABLE. Tabel lama Input Stock sebelum refactor flow. */
 export const PRODUCT_STOCK_TABLE = "Admin_Ely_Product_Stock";
 

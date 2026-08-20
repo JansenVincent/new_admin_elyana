@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { productService } from "@/application/services/ProductService";
 import type { MyProductDetail } from "@/domain/entities/MyProduct";
+import EditKuantitasDialog from "@/presentation/components/product/EditKuantitasDialog";
 import LoadingOverlay from "@/presentation/components/ui/LoadingOverlay";
+import { useAuthSession } from "@/shared/hooks/useAuthSession";
 import { formatHargaDisplay } from "@/shared/utils/formatCatatan";
 import {
   formatHistoriBarangDate,
@@ -24,10 +26,12 @@ interface MyProductDetailViewProps {
 export default function MyProductDetailView({
   productId,
 }: MyProductDetailViewProps) {
+  const { user } = useAuthSession();
   const [product, setProduct] = useState<MyProductDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  const [showEditKuantitas, setShowEditKuantitas] = useState(false);
 
   /**
    * Mengambil detail product beserta harga dan histori barang.
@@ -131,16 +135,44 @@ export default function MyProductDetailView({
         </Link>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
-          <h2 className="text-2xl font-semibold text-slate-900">
-            {toTitleCase(product.nama_barang)}
-          </h2>
-          <p className="mt-3 inline-flex rounded-full bg-slate-100 px-4 py-1.5 text-sm font-medium text-slate-800">
-            Kuantitas:{" "}
-            {formatKuantitasDisplay(
-              product.kuantitas,
-              product.satuan_kuantitas
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="text-2xl font-semibold text-slate-900">
+                {toTitleCase(product.nama_barang)}
+              </h2>
+              <p className="mt-3 inline-flex rounded-full bg-slate-100 px-4 py-1.5 text-sm font-medium text-slate-800">
+                Kuantitas:{" "}
+                {formatKuantitasDisplay(
+                  product.kuantitas,
+                  product.satuan_kuantitas
+                )}
+              </p>
+            </div>
+            {user && (
+              <button
+                type="button"
+                onClick={() => setShowEditKuantitas(true)}
+                className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="h-4 w-4"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+                Edit Kuantitas
+              </button>
             )}
-          </p>
+          </div>
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
@@ -225,6 +257,19 @@ export default function MyProductDetailView({
           )}
         </div>
       </section>
+
+      {user && (
+        <EditKuantitasDialog
+          visible={showEditKuantitas}
+          productId={product.product_id}
+          currentKuantitas={product.kuantitas}
+          satuanKuantitas={product.satuan_kuantitas}
+          username={user.username}
+          name={user.name}
+          onClose={() => setShowEditKuantitas(false)}
+          onSaved={fetchProductDetail}
+        />
+      )}
 
       <LoadingOverlay visible={isLoading} />
     </>

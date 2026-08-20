@@ -14,6 +14,11 @@ import type {
   MyProductListItem,
   MyProductPriceByCustomer,
 } from "@/domain/entities/MyProduct";
+import type {
+  UpdateKuantitasErrorStage,
+  UpdateProductKuantitasInput,
+  UpdateProductKuantitasResult,
+} from "@/domain/entities/UpdateKuantitas";
 import { getSupabaseServerClient } from "@/infrastructure/supabase/serverClient";
 import {
   HARGA_TABLE,
@@ -23,6 +28,7 @@ import {
   INPUT_BARANG_ERROR_BARCODE_BUCKET,
   INPUT_BARANG_ERROR_BARCODE_UPLOAD,
   INPUT_BARANG_ERROR_MESSAGES,
+  UPDATE_KUANTITAS_ERROR_MESSAGES,
   PRODUCT_BARCODE_BUCKET,
   PRODUCT_TABLE,
 } from "@/shared/constants/product";
@@ -31,6 +37,7 @@ import {
   CUSTOMER_TABLE,
 } from "@/shared/constants/customer";
 import {
+  buildHistoriEditKuantitasCatatan,
   buildHistoriHargaCatatan,
   buildHistoriMasukCatatan,
 } from "@/shared/utils/formatCatatan";
@@ -526,6 +533,129 @@ export class SupabaseProductRepository implements ProductRepository {
       const message =
         err instanceof Error ? err.message : "Terjadi kesalahan tidak terduga";
       return { success: false, error: message };
+    }
+  }
+
+  /**
+   * Mengembalikan hasil gagal update kuantitas dengan pesan popup standar.
+   */
+  private buildUpdateKuantitasFailureResult(
+    stage: UpdateKuantitasErrorStage
+  ): UpdateProductKuantitasResult {
+    return {
+      success: false,
+      errorStage: stage,
+      error: UPDATE_KUANTITAS_ERROR_MESSAGES[stage],
+    };
+  }
+
+  /**
+   * Memperbarui kuantitas product dan insert histori masuk/keluar dengan rollback.
+   */
+  async updateProductKuantitas(
+    input: UpdateProductKuantitasInput
+  ): Promise<UpdateProductKuantitasResult> {
+    try {
+      const supabase = getSupabaseServerClient();
+      const now = new Date();
+
+      const { data: productRow, error: fetchError } = await supabase
+        .from(PRODUCT_TABLE)
+        .select("kuantitas")
+        .eq("product_id", input.productId)
+        .maybeSingle();
+
+      if (fetchError) {
+        return this.buildUpdateKuantitasFailureResult("product");
+      }
+
+      if (!productRow) {
+        return { success: false, error: "Product tidak ditemukan" };
+      }
+
+      const oldKuantitas = Number(productRow.kuantitas);
+      const newKuantitas =
+        input.mode === "tambah"
+          ? oldKuantitas + input.jumlah
+          : oldKuantitas - input.jumlah;
+
+      if (newKuantitas < 0) {
+        return {
+          success: false,
+          error: "Kuantitas product tidak boleh kurang dari 0",
+        };
+      }
+
+      try {
+        const { error: updateError } = await supabase
+          .from(PRODUCT_TABLE)
+          .update({ kuantitas: newKuantitas })
+          .eq("product_id", input.productId);
+
+        if (updateError) {
+          throw new Error(updateError.message);
+        }
+      } catch {
+        return this.buildUpdateKuantitasFailureResult("product");
+      }
+
+      const catatan = buildHistoriEditKuantitasCatatan(
+        input.username,
+        input.name,
+        input.catatan,
+        now
+      ).slice(0, 250);
+
+      try {
+        if (input.mode === "tambah") {
+          const { error: masukError } = await supabase
+            .from(HISTORI_MASUK_TABLE)
+            .insert({
+              product_id: input.productId,
+              tanggal_masuk: input.tanggal,
+              kuantitas_masuk: input.jumlah,
+              catatan,
+            });
+
+          if (masukError) {
+            throw new Error(masukError.message);
+          }
+        } else {
+          const { error: keluarError } = await supabase
+            .from(HISTORI_KELUAR_TABLE)
+            .insert({
+              product_id: input.productId,
+              tanggal_keluar: input.tanggal,
+              kuantitas_keluar: input.jumlah,
+              catatan,
+            });
+
+          if (keluarError) {
+            throw new Error(keluarError.message);
+          }
+        }
+      } catch {
+        await supabase
+          .from(PRODUCT_TABLE)
+          .update({ kuantitas: oldKuantitas })
+          .eq("product_id", input.productId);
+
+        return this.buildUpdateKuantitasFailureResult(
+          input.mode === "tambah" ? "histori_masuk" : "histori_keluar"
+        );
+      }
+
+      return { success: true, newKuantitas };
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        return {
+          success: false,
+          errorStage: "product",
+          error: "Request timeout (60 detik)",
+        };
+      }
+
+      return this.buildUpdateKuantitasFailureResult("product");
     }
   }
 }

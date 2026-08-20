@@ -8,6 +8,10 @@ import type {
   ListMyProductsParams,
   ListMyProductsResult,
 } from "@/domain/entities/MyProduct";
+import type {
+  KuantitasEditMode,
+  UpdateProductKuantitasResult,
+} from "@/domain/entities/UpdateKuantitas";
 import { PRODUCT_JENIS_OPTIONS } from "@/shared/constants/product";
 
 /**
@@ -96,6 +100,37 @@ export class ProductService {
       `/api/products/my-product/${encodeURIComponent(productId)}`
     );
     return (await response.json()) as GetMyProductDetailResult;
+  }
+
+  /**
+   * Memperbarui kuantitas product dan histori masuk/keluar melalui API.
+   */
+  async updateProductKuantitas(input: {
+    productId: string;
+    mode: KuantitasEditMode;
+    jumlah: number;
+    tanggal: string;
+    catatan: string;
+    username: string;
+    name: string;
+  }): Promise<UpdateProductKuantitasResult> {
+    const response = await fetch(
+      `/api/products/my-product/${encodeURIComponent(input.productId)}/kuantitas`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: input.mode,
+          jumlah: input.jumlah,
+          tanggal: input.tanggal,
+          catatan: input.catatan,
+          username: input.username,
+          name: input.name,
+        }),
+      }
+    );
+
+    return (await response.json()) as UpdateProductKuantitasResult;
   }
 }
 

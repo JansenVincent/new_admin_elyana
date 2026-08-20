@@ -8,6 +8,10 @@ import type {
   ListMyProductsParams,
   ListMyProductsResult,
 } from "@/domain/entities/MyProduct";
+import type {
+  UpdateProductKuantitasInput,
+  UpdateProductKuantitasResult,
+} from "@/domain/entities/UpdateKuantitas";
 
 /**
  * Kontrak repository untuk operasi product.
@@ -36,4 +40,11 @@ export interface ProductRepository {
    * Mengambil detail product beserta harga dan histori barang.
    */
   getMyProductDetail(productId: string): Promise<GetMyProductDetailResult>;
+
+  /**
+   * Memperbarui kuantitas product dan mencatat histori masuk/keluar.
+   */
+  updateProductKuantitas(
+    input: UpdateProductKuantitasInput
+  ): Promise<UpdateProductKuantitasResult>;
 }

@@ -59,3 +59,23 @@ export function buildHistoriHargaCatatan(
   const hargaDisplay = formatHargaDisplay(mataUang, nominal);
   return `Data diinput pada tanggal ${timestamp} melalui menu Product > Input Barang oleh ${username}-${name} dengan harga ${hargaDisplay}.`;
 }
+
+/**
+ * Membuat catatan histori perubahan kuantitas dari My Product.
+ */
+export function buildHistoriEditKuantitasCatatan(
+  username: string,
+  name: string,
+  userCatatan: string,
+  date: Date = new Date()
+): string {
+  const timestamp = formatWibDateTimeForCatatan(date);
+  const base = `Data diubah pada tanggal ${timestamp} melalui menu Product > My Product oleh ${username}-${name}`;
+
+  const trimmed = userCatatan.trim();
+  if (!trimmed) {
+    return `${base}, dengan tidak ada catatan`;
+  }
+
+  return `${base}, dengan catatan ${trimmed.toLowerCase()}.`;
+}
