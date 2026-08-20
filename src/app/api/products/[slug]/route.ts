@@ -2,23 +2,23 @@ import { NextResponse } from "next/server";
 import { productRepository } from "@/infrastructure/repositories/SupabaseProductRepository";
 
 /**
- * Endpoint server-side untuk mengambil detail product My Product.
+ * Endpoint server-side untuk mengambil detail product berdasarkan slug_id.
  */
 export async function GET(
   _request: Request,
-  context: { params: Promise<{ productId: string }> }
+  context: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const { productId } = await context.params;
+    const { slug } = await context.params;
 
-    if (!productId?.trim()) {
+    if (!slug?.trim()) {
       return NextResponse.json(
-        { success: false, error: "product_id wajib diisi" },
+        { success: false, error: "slug wajib diisi" },
         { status: 400 }
       );
     }
 
-    const result = await productRepository.getMyProductDetail(productId.trim());
+    const result = await productRepository.getMyProductDetailBySlug(slug.trim());
 
     if (!result.success) {
       const status = result.error === "Product tidak ditemukan" ? 404 : 500;

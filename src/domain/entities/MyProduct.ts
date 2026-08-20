@@ -1,6 +1,7 @@
 /** Item product pada daftar My Product. */
 export interface MyProductListItem {
   product_id: string;
+  slug_id: string;
   nama_barang: string;
 }
 
@@ -47,6 +48,7 @@ export interface MyProductHistoriBarangEntry {
 /** Detail lengkap product untuk halaman My Product. */
 export interface MyProductDetail {
   product_id: string;
+  slug_id: string;
   nama_barang: string;
   kuantitas: number;
   satuan_kuantitas: string;

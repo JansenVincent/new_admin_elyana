@@ -49,6 +49,7 @@ export type InputBarangSaveErrorStage =
 export interface SaveInputBarangResult {
   success: boolean;
   product_id?: string;
+  slug_id?: string;
   error?: string;
   errorStage?: InputBarangSaveErrorStage;
 }

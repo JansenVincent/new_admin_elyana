@@ -95,7 +95,7 @@ Atau buat bucket storage **`product-barcode-images`** manual di Supabase Dashboa
 
 **Admin_Ely_Customer:** `cust_id` (PK, cust_1...), cust_name, address, front_code, back_code, status_customer (default Active), created_date, last_edited
 
-**Admin_Ely_Product:** `product_id` (PK, product_1...), nama_barang, tipe_barang, kuantitas, satuan_kuantitas, keterangan, barcode
+**Admin_Ely_Product:** `product_id` (PK, product_1...), `slug_id` (UNIQUE, slug nama barang + short id untuk URL detail, contoh: `sepatu-lari-nike-black-a8f2k`), nama_barang, tipe_barang, kuantitas, satuan_kuantitas, keterangan, barcode
 
 **Admin_Ely_Harga:** `harga_id` (PK, price_1...), product_id (FK), cust_id (FK), harga, mata_uang
 
@@ -103,6 +103,4 @@ Atau buat bucket storage **`product-barcode-images`** manual di Supabase Dashboa
 
 ### Keamanan Production
 
-Operasi sensitif lewat **API route** + **SUPABASE_SERVICE_ROLE_KEY**. Hapus customer = soft delete (`status_customer` → Inactive).
-
-> **Catatan:** Form Input Stock (flow lama) masih menunjuk ke tabel `Admin_Ely_Product_Stock` — akan di-refactor mengikuti schema `Admin_Ely_Product` baru.
+Operasi sensitif lewat **API route** + **SUPABASE_SERVICE_ROLE_KEY**. Hapus customer = soft delete (`status_customer` → Inactive). URL detail My Product memakai `slug_id`, bukan primary key `product_id`.

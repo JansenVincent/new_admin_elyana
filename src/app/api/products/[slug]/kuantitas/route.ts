@@ -5,14 +5,14 @@ import { getTodayWibDateInputValue } from "@/shared/utils/timestamp";
 import { MAX_EDIT_KUANTITAS_CATATAN_LENGTH } from "@/shared/constants/product";
 
 /**
- * Endpoint server-side untuk memperbarui kuantitas product dari My Product.
+ * Endpoint server-side untuk memperbarui kuantitas product berdasarkan slug_id.
  */
 export async function POST(
   request: Request,
-  context: { params: Promise<{ productId: string }> }
+  context: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const { productId } = await context.params;
+    const { slug } = await context.params;
     const body = (await request.json()) as {
       mode?: KuantitasEditMode;
       jumlah?: number;
@@ -22,9 +22,9 @@ export async function POST(
       name?: string;
     };
 
-    if (!productId?.trim()) {
+    if (!slug?.trim()) {
       return NextResponse.json(
-        { success: false, error: "product_id wajib diisi" },
+        { success: false, error: "slug wajib diisi" },
         { status: 400 }
       );
     }
@@ -53,15 +53,17 @@ export async function POST(
       );
     }
 
-    const result = await productRepository.updateProductKuantitas({
-      productId: productId.trim(),
-      mode,
-      jumlah,
-      tanggal,
-      catatan,
-      username,
-      name,
-    });
+    const result = await productRepository.updateProductKuantitasBySlug(
+      slug.trim(),
+      {
+        mode,
+        jumlah,
+        tanggal,
+        catatan,
+        username,
+        name,
+      }
+    );
 
     if (!result.success) {
       const status = result.error === "Product tidak ditemukan" ? 404 : 500;

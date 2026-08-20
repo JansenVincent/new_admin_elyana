@@ -150,7 +150,7 @@ export default function MyProductList() {
             {products.map((product) => (
               <li key={product.product_id}>
                 <Link
-                  href={`/product/my-product/${encodeURIComponent(product.product_id)}`}
+                  href={`/product/${encodeURIComponent(product.slug_id)}`}
                   className="group flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-4 transition hover:border-slate-300 hover:bg-white hover:shadow-sm"
                 >
                   <span className="font-medium text-slate-900 group-hover:text-slate-950">

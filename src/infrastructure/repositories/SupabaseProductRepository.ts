@@ -41,6 +41,11 @@ import {
   buildHistoriHargaCatatan,
   buildHistoriMasukCatatan,
 } from "@/shared/utils/formatCatatan";
+import {
+  generateProductShortId,
+  generateProductSlugId,
+  slugifyProductName,
+} from "@/shared/utils/productSlug";
 
 /** State insert sementara untuk rollback jika salah satu step gagal. */
 interface InputBarangInsertState {
@@ -94,6 +99,29 @@ export class SupabaseProductRepository implements ProductRepository {
   private async deleteBarcodeImage(storagePath: string): Promise<void> {
     const supabase = getSupabaseServerClient();
     await supabase.storage.from(PRODUCT_BARCODE_BUCKET).remove([storagePath]);
+  }
+
+  /**
+   * Menghasilkan slug_id unik untuk product baru.
+   */
+  private async generateUniqueSlugId(namaBarang: string): Promise<string> {
+    const supabase = getSupabaseServerClient();
+
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const slugId = generateProductSlugId(namaBarang);
+
+      const { data } = await supabase
+        .from(PRODUCT_TABLE)
+        .select("product_id")
+        .eq("slug_id", slugId)
+        .maybeSingle();
+
+      if (!data) {
+        return slugId;
+      }
+    }
+
+    return `${slugifyProductName(namaBarang)}-${generateProductShortId(8)}`;
   }
 
   /**
@@ -214,11 +242,15 @@ export class SupabaseProductRepository implements ProductRepository {
 
       const supabase = getSupabaseServerClient();
       const now = new Date();
+      let savedSlugId = "";
 
       try {
+        const slugId = await this.generateUniqueSlugId(input.namaBarang.trim());
+
         const { data: productData, error: productError } = await supabase
           .from(PRODUCT_TABLE)
           .insert({
+            slug_id: slugId,
             nama_barang: input.namaBarang.trim(),
             tipe_barang: input.jenis,
             kuantitas: input.jumlahBarang,
@@ -226,7 +258,7 @@ export class SupabaseProductRepository implements ProductRepository {
             keterangan: input.keteranganBarang.trim(),
             barcode: uploadResult.url,
           })
-          .select("product_id")
+          .select("product_id, slug_id")
           .single();
 
         if (productError || !productData) {
@@ -234,6 +266,7 @@ export class SupabaseProductRepository implements ProductRepository {
         }
 
         insertState.productId = String(productData.product_id);
+        savedSlugId = String(productData.slug_id);
       } catch {
         await this.rollbackInputBarang(insertState);
         return this.buildFailureResult("product");
@@ -321,7 +354,11 @@ export class SupabaseProductRepository implements ProductRepository {
         }
       }
 
-      return { success: true, product_id: productId };
+      return {
+        success: true,
+        product_id: productId,
+        slug_id: savedSlugId,
+      };
     } catch (err) {
       await this.rollbackInputBarang(insertState);
 
@@ -352,7 +389,7 @@ export class SupabaseProductRepository implements ProductRepository {
 
       let query = supabase
         .from(PRODUCT_TABLE)
-        .select("product_id, nama_barang", { count: "exact" })
+        .select("product_id, slug_id, nama_barang", { count: "exact" })
         .order("nama_barang", { ascending: true });
 
       if (params.search?.trim()) {
@@ -371,6 +408,7 @@ export class SupabaseProductRepository implements ProductRepository {
 
       const products: MyProductListItem[] = (data ?? []).map((row) => ({
         product_id: String(row.product_id),
+        slug_id: String(row.slug_id ?? ""),
         nama_barang: String(row.nama_barang ?? ""),
       }));
 
@@ -389,16 +427,18 @@ export class SupabaseProductRepository implements ProductRepository {
   }
 
   /**
-   * Mengambil detail product beserta harga per customer dan histori barang.
+   * Mengambil detail product berdasarkan slug_id URL.
    */
-  async getMyProductDetail(productId: string): Promise<GetMyProductDetailResult> {
+  async getMyProductDetailBySlug(
+    slugId: string
+  ): Promise<GetMyProductDetailResult> {
     try {
       const supabase = getSupabaseServerClient();
 
       const { data: productRow, error: productError } = await supabase
         .from(PRODUCT_TABLE)
-        .select("product_id, nama_barang, kuantitas, satuan_kuantitas")
-        .eq("product_id", productId)
+        .select("product_id, slug_id, nama_barang, kuantitas, satuan_kuantitas")
+        .eq("slug_id", slugId)
         .maybeSingle();
 
       if (productError) {
@@ -408,6 +448,30 @@ export class SupabaseProductRepository implements ProductRepository {
       if (!productRow) {
         return { success: false, error: "Product tidak ditemukan" };
       }
+
+      return this.buildMyProductDetail(String(productRow.product_id), productRow);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Terjadi kesalahan tidak terduga";
+      return { success: false, error: message };
+    }
+  }
+
+  /**
+   * Membangun detail product lengkap berdasarkan product_id.
+   */
+  private async buildMyProductDetail(
+    productId: string,
+    productRow: {
+      product_id: unknown;
+      slug_id: unknown;
+      nama_barang: unknown;
+      kuantitas: unknown;
+      satuan_kuantitas: unknown;
+    }
+  ): Promise<GetMyProductDetailResult> {
+    try {
+      const supabase = getSupabaseServerClient();
 
       const { data: hargaRows, error: hargaError } = await supabase
         .from(HARGA_TABLE)
@@ -521,6 +585,7 @@ export class SupabaseProductRepository implements ProductRepository {
 
       const product: MyProductDetail = {
         product_id: String(productRow.product_id),
+        slug_id: String(productRow.slug_id ?? ""),
         nama_barang: String(productRow.nama_barang ?? ""),
         kuantitas: Number(productRow.kuantitas),
         satuan_kuantitas: satuan,
@@ -550,10 +615,44 @@ export class SupabaseProductRepository implements ProductRepository {
   }
 
   /**
+   * Memperbarui kuantitas product berdasarkan slug_id URL.
+   */
+  async updateProductKuantitasBySlug(
+    slugId: string,
+    input: Omit<UpdateProductKuantitasInput, "productId">
+  ): Promise<UpdateProductKuantitasResult> {
+    try {
+      const supabase = getSupabaseServerClient();
+
+      const { data: productRow, error: fetchError } = await supabase
+        .from(PRODUCT_TABLE)
+        .select("product_id")
+        .eq("slug_id", slugId)
+        .maybeSingle();
+
+      if (fetchError) {
+        return this.buildUpdateKuantitasFailureResult("product");
+      }
+
+      if (!productRow) {
+        return { success: false, error: "Product tidak ditemukan" };
+      }
+
+      return this.updateProductKuantitasInternal(
+        String(productRow.product_id),
+        input
+      );
+    } catch {
+      return this.buildUpdateKuantitasFailureResult("product");
+    }
+  }
+
+  /**
    * Memperbarui kuantitas product dan insert histori masuk/keluar dengan rollback.
    */
-  async updateProductKuantitas(
-    input: UpdateProductKuantitasInput
+  private async updateProductKuantitasInternal(
+    productId: string,
+    input: Omit<UpdateProductKuantitasInput, "productId">
   ): Promise<UpdateProductKuantitasResult> {
     try {
       const supabase = getSupabaseServerClient();
@@ -562,7 +661,7 @@ export class SupabaseProductRepository implements ProductRepository {
       const { data: productRow, error: fetchError } = await supabase
         .from(PRODUCT_TABLE)
         .select("kuantitas")
-        .eq("product_id", input.productId)
+        .eq("product_id", productId)
         .maybeSingle();
 
       if (fetchError) {
@@ -590,7 +689,7 @@ export class SupabaseProductRepository implements ProductRepository {
         const { error: updateError } = await supabase
           .from(PRODUCT_TABLE)
           .update({ kuantitas: newKuantitas })
-          .eq("product_id", input.productId);
+          .eq("product_id", productId);
 
         if (updateError) {
           throw new Error(updateError.message);
@@ -611,7 +710,7 @@ export class SupabaseProductRepository implements ProductRepository {
           const { error: masukError } = await supabase
             .from(HISTORI_MASUK_TABLE)
             .insert({
-              product_id: input.productId,
+              product_id: productId,
               tanggal_masuk: input.tanggal,
               kuantitas_masuk: input.jumlah,
               catatan,
@@ -624,7 +723,7 @@ export class SupabaseProductRepository implements ProductRepository {
           const { error: keluarError } = await supabase
             .from(HISTORI_KELUAR_TABLE)
             .insert({
-              product_id: input.productId,
+              product_id: productId,
               tanggal_keluar: input.tanggal,
               kuantitas_keluar: input.jumlah,
               catatan,
@@ -638,7 +737,7 @@ export class SupabaseProductRepository implements ProductRepository {
         await supabase
           .from(PRODUCT_TABLE)
           .update({ kuantitas: oldKuantitas })
-          .eq("product_id", input.productId);
+          .eq("product_id", productId);
 
         return this.buildUpdateKuantitasFailureResult(
           input.mode === "tambah" ? "histori_masuk" : "histori_keluar"

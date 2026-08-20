@@ -93,11 +93,11 @@ export class ProductService {
   }
 
   /**
-   * Mengambil detail product untuk halaman My Product.
+   * Mengambil detail product untuk halaman My Product berdasarkan slug_id URL.
    */
-  async getMyProductDetail(productId: string): Promise<GetMyProductDetailResult> {
+  async getMyProductDetail(slugId: string): Promise<GetMyProductDetailResult> {
     const response = await fetch(
-      `/api/products/my-product/${encodeURIComponent(productId)}`
+      `/api/products/${encodeURIComponent(slugId)}`
     );
     return (await response.json()) as GetMyProductDetailResult;
   }
@@ -106,7 +106,7 @@ export class ProductService {
    * Memperbarui kuantitas product dan histori masuk/keluar melalui API.
    */
   async updateProductKuantitas(input: {
-    productId: string;
+    slugId: string;
     mode: KuantitasEditMode;
     jumlah: number;
     tanggal: string;
@@ -115,7 +115,7 @@ export class ProductService {
     name: string;
   }): Promise<UpdateProductKuantitasResult> {
     const response = await fetch(
-      `/api/products/my-product/${encodeURIComponent(input.productId)}/kuantitas`,
+      `/api/products/${encodeURIComponent(input.slugId)}/kuantitas`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -3,6 +3,7 @@ CREATE SEQUENCE IF NOT EXISTS admin_ely_product_id_seq START WITH 1 INCREMENT BY
 
 CREATE TABLE IF NOT EXISTS "Admin_Ely_Product" (
   product_id TEXT PRIMARY KEY,
+  slug_id TEXT NOT NULL UNIQUE CHECK (char_length(slug_id) <= 120),
   nama_barang TEXT NOT NULL CHECK (char_length(nama_barang) <= 100),
   tipe_barang TEXT NOT NULL CHECK (char_length(tipe_barang) <= 100),
   kuantitas INTEGER NOT NULL CHECK (kuantitas >= 0),

@@ -16,15 +16,15 @@ import {
 import { toTitleCase } from "@/shared/utils/stringFormat";
 
 interface MyProductDetailViewProps {
-  /** ID product yang akan ditampilkan detailnya. */
-  productId: string;
+  /** Slug ID product yang akan ditampilkan detailnya. */
+  slugId: string;
 }
 
 /**
  * Halaman detail product pada menu My Product.
  */
 export default function MyProductDetailView({
-  productId,
+  slugId,
 }: MyProductDetailViewProps) {
   const { user } = useAuthSession();
   const [product, setProduct] = useState<MyProductDetail | null>(null);
@@ -41,7 +41,7 @@ export default function MyProductDetailView({
     setLoadError(false);
     setNotFound(false);
 
-    const result = await productService.getMyProductDetail(productId);
+    const result = await productService.getMyProductDetail(slugId);
 
     if (!result.success) {
       if (result.error === "Product tidak ditemukan") {
@@ -56,7 +56,7 @@ export default function MyProductDetailView({
 
     setProduct(result.product ?? null);
     setIsLoading(false);
-  }, [productId]);
+  }, [slugId]);
 
   useEffect(() => {
     void fetchProductDetail();
@@ -261,7 +261,7 @@ export default function MyProductDetailView({
       {user && (
         <EditKuantitasDialog
           visible={showEditKuantitas}
-          productId={product.product_id}
+          slugId={product.slug_id}
           currentKuantitas={product.kuantitas}
           satuanKuantitas={product.satuan_kuantitas}
           username={user.username}

@@ -22,8 +22,8 @@ const inputClassName =
 interface EditKuantitasDialogProps {
   /** Apakah dialog edit kuantitas ditampilkan. */
   visible: boolean;
-  /** ID product yang sedang diedit. */
-  productId: string;
+  /** Slug ID product yang sedang diedit. */
+  slugId: string;
   /** Kuantitas product saat ini. */
   currentKuantitas: number;
   /** Satuan kuantitas product. */
@@ -43,7 +43,7 @@ interface EditKuantitasDialogProps {
  */
 export default function EditKuantitasDialog({
   visible,
-  productId,
+  slugId,
   currentKuantitas,
   satuanKuantitas,
   username,
@@ -174,7 +174,7 @@ export default function EditKuantitasDialog({
     setIsSaving(true);
 
     const result = await productService.updateProductKuantitas({
-      productId,
+      slugId,
       mode,
       jumlah: Number(jumlah),
       tanggal,

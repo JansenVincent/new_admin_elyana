@@ -3,7 +3,6 @@ export type KuantitasEditMode = "tambah" | "kurang";
 
 /** Payload update kuantitas product dari client ke API. */
 export interface UpdateProductKuantitasInput {
-  productId: string;
   mode: KuantitasEditMode;
   jumlah: number;
   tanggal: string;

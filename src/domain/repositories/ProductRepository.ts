@@ -37,14 +37,15 @@ export interface ProductRepository {
   listMyProducts(params: ListMyProductsParams): Promise<ListMyProductsResult>;
 
   /**
-   * Mengambil detail product beserta harga dan histori barang.
+   * Mengambil detail product beserta harga dan histori barang berdasarkan slug_id.
    */
-  getMyProductDetail(productId: string): Promise<GetMyProductDetailResult>;
+  getMyProductDetailBySlug(slugId: string): Promise<GetMyProductDetailResult>;
 
   /**
-   * Memperbarui kuantitas product dan mencatat histori masuk/keluar.
+   * Memperbarui kuantitas product dan mencatat histori masuk/keluar berdasarkan slug_id.
    */
-  updateProductKuantitas(
-    input: UpdateProductKuantitasInput
+  updateProductKuantitasBySlug(
+    slugId: string,
+    input: Omit<UpdateProductKuantitasInput, "productId">
   ): Promise<UpdateProductKuantitasResult>;
 }
