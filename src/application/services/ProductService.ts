@@ -9,6 +9,11 @@ import type {
   ListMyProductsResult,
 } from "@/domain/entities/MyProduct";
 import type {
+  AddProductHargaPriceRow,
+  AddProductHargaResult,
+  UpdateProductHargaResult,
+} from "@/domain/entities/UpdateHarga";
+import type {
   KuantitasEditMode,
   UpdateProductKuantitasResult,
 } from "@/domain/entities/UpdateKuantitas";
@@ -131,6 +136,58 @@ export class ProductService {
     );
 
     return (await response.json()) as UpdateProductKuantitasResult;
+  }
+
+  /**
+   * Memperbarui harga product existing melalui API My Product.
+   */
+  async updateProductHarga(input: {
+    slugId: string;
+    hargaId: string;
+    harga: number;
+    username: string;
+    name: string;
+  }): Promise<UpdateProductHargaResult> {
+    const response = await fetch(
+      `/api/products/${encodeURIComponent(input.slugId)}/harga`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          harga_id: input.hargaId,
+          harga: input.harga,
+          username: input.username,
+          name: input.name,
+        }),
+      }
+    );
+
+    return (await response.json()) as UpdateProductHargaResult;
+  }
+
+  /**
+   * Menambahkan harga product untuk customer baru melalui API My Product.
+   */
+  async addProductHarga(input: {
+    slugId: string;
+    priceRows: AddProductHargaPriceRow[];
+    username: string;
+    name: string;
+  }): Promise<AddProductHargaResult> {
+    const response = await fetch(
+      `/api/products/${encodeURIComponent(input.slugId)}/harga`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          priceRows: input.priceRows,
+          username: input.username,
+          name: input.name,
+        }),
+      }
+    );
+
+    return (await response.json()) as AddProductHargaResult;
   }
 }
 

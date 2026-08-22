@@ -9,6 +9,12 @@ import type {
   ListMyProductsResult,
 } from "@/domain/entities/MyProduct";
 import type {
+  AddProductHargaInput,
+  AddProductHargaResult,
+  UpdateProductHargaInput,
+  UpdateProductHargaResult,
+} from "@/domain/entities/UpdateHarga";
+import type {
   UpdateProductKuantitasInput,
   UpdateProductKuantitasResult,
 } from "@/domain/entities/UpdateKuantitas";
@@ -48,4 +54,20 @@ export interface ProductRepository {
     slugId: string,
     input: Omit<UpdateProductKuantitasInput, "productId">
   ): Promise<UpdateProductKuantitasResult>;
+
+  /**
+   * Memperbarui harga product existing dan mencatat histori harga berdasarkan slug_id.
+   */
+  updateProductHargaBySlug(
+    slugId: string,
+    input: UpdateProductHargaInput
+  ): Promise<UpdateProductHargaResult>;
+
+  /**
+   * Menambahkan harga product untuk customer baru berdasarkan slug_id.
+   */
+  addProductHargaBySlug(
+    slugId: string,
+    input: AddProductHargaInput
+  ): Promise<AddProductHargaResult>;
 }

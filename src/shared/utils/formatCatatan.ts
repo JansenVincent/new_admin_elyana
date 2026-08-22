@@ -61,6 +61,36 @@ export function buildHistoriHargaCatatan(
 }
 
 /**
+ * Membuat catatan histori harga product dari menu My Product (penambahan).
+ */
+export function buildHistoriAddHargaMyProductCatatan(
+  username: string,
+  name: string,
+  mataUang: string,
+  nominal: number,
+  date: Date = new Date()
+): string {
+  const timestamp = formatWibDateTimeForCatatan(date);
+  const hargaDisplay = formatHargaDisplay(mataUang, nominal);
+  return `Data diinput pada tanggal ${timestamp} melalui menu Product > My Product oleh ${username}-${name} dengan harga ${hargaDisplay}.`;
+}
+
+/**
+ * Membuat catatan histori perubahan harga product dari menu My Product.
+ */
+export function buildHistoriEditHargaMyProductCatatan(
+  username: string,
+  name: string,
+  mataUang: string,
+  nominal: number,
+  date: Date = new Date()
+): string {
+  const timestamp = formatWibDateTimeForCatatan(date);
+  const hargaDisplay = formatHargaDisplay(mataUang, nominal);
+  return `Data diubah pada tanggal ${timestamp} melalui menu Product > My Product oleh ${username}-${name} menjadi harga ${hargaDisplay}.`;
+}
+
+/**
  * Membuat catatan histori perubahan kuantitas dari My Product.
  */
 export function buildHistoriEditKuantitasCatatan(

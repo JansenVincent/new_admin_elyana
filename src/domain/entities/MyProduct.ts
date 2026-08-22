@@ -29,6 +29,8 @@ export interface MyProductPriceHistoriLog {
 
 /** Harga product per customer beserta log histori. */
 export interface MyProductPriceByCustomer {
+  harga_id: string;
+  cust_id: string;
   cust_name: string;
   mata_uang: string;
   harga: number;

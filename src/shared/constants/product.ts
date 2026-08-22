@@ -81,6 +81,29 @@ export const MAX_DETAIL_BARANG_LENGTH = MAX_KETERANGAN_LENGTH;
 export const SUPPORTED_BARCODE_IMAGE_EXTENSIONS =
   "JPG, JPEG, PNG, GIF, WEBP, BMP, SVG";
 
+/** Tahap penyimpanan update kuantitas yang gagal. */
+export type UpdateKuantitasErrorStage = "product" | "histori_masuk" | "histori_keluar";
+
+/** Tahap penyimpanan update/penambahan harga My Product yang gagal. */
+export type UpdateHargaErrorStage = "harga" | "histori_harga";
+
+/** Pesan error saat gagal update/insert ke Admin_Ely_Harga dari My Product. */
+export const UPDATE_HARGA_ERROR_HARGA =
+  "Gagal menyimpan data 'Harga'. Silakan coba beberapa saat lagi";
+
+/** Pesan error saat gagal insert ke Admin_Ely_Histori_Harga dari My Product. */
+export const UPDATE_HARGA_ERROR_HISTORI_HARGA =
+  "Gagal menyimpan data 'Histori Harga'. Silakan coba beberapa saat lagi";
+
+/** Memetakan tahap error update/penambahan harga ke pesan popup. */
+export const UPDATE_HARGA_ERROR_MESSAGES: Record<
+  UpdateHargaErrorStage,
+  string
+> = {
+  harga: UPDATE_HARGA_ERROR_HARGA,
+  histori_harga: UPDATE_HARGA_ERROR_HISTORI_HARGA,
+};
+
 /** Tahap penyimpanan Input Barang yang gagal di database. */
 export type InputBarangSaveErrorStage =
   | "product"

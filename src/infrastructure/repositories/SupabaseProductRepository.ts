@@ -15,6 +15,13 @@ import type {
   MyProductPriceByCustomer,
 } from "@/domain/entities/MyProduct";
 import type {
+  AddProductHargaInput,
+  AddProductHargaResult,
+  UpdateHargaErrorStage,
+  UpdateProductHargaInput,
+  UpdateProductHargaResult,
+} from "@/domain/entities/UpdateHarga";
+import type {
   UpdateKuantitasErrorStage,
   UpdateProductKuantitasInput,
   UpdateProductKuantitasResult,
@@ -29,6 +36,7 @@ import {
   INPUT_BARANG_ERROR_BARCODE_UPLOAD,
   INPUT_BARANG_ERROR_MESSAGES,
   UPDATE_KUANTITAS_ERROR_MESSAGES,
+  UPDATE_HARGA_ERROR_MESSAGES,
   PRODUCT_BARCODE_BUCKET,
   PRODUCT_TABLE,
 } from "@/shared/constants/product";
@@ -37,6 +45,8 @@ import {
   CUSTOMER_TABLE,
 } from "@/shared/constants/customer";
 import {
+  buildHistoriAddHargaMyProductCatatan,
+  buildHistoriEditHargaMyProductCatatan,
   buildHistoriEditKuantitasCatatan,
   buildHistoriHargaCatatan,
   buildHistoriMasukCatatan,
@@ -46,6 +56,12 @@ import {
   generateProductSlugId,
   slugifyProductName,
 } from "@/shared/utils/productSlug";
+
+/** State insert sementara untuk rollback penambahan harga My Product. */
+interface AddHargaInsertState {
+  hargaIds: string[];
+  histHargaIds: string[];
+}
 
 /** State insert sementara untuk rollback jika salah satu step gagal. */
 interface InputBarangInsertState {
@@ -478,6 +494,7 @@ export class SupabaseProductRepository implements ProductRepository {
         .select(
           `
           harga_id,
+          cust_id,
           harga,
           mata_uang,
           Admin_Ely_Customer ( cust_name )
@@ -534,6 +551,8 @@ export class SupabaseProductRepository implements ProductRepository {
             : customer?.cust_name;
 
           return {
+            harga_id: String(row.harga_id),
+            cust_id: String(row.cust_id ?? ""),
             cust_name: String(custName ?? "-"),
             mata_uang: String(row.mata_uang ?? "IDR"),
             harga: Number(row.harga),
@@ -755,6 +774,277 @@ export class SupabaseProductRepository implements ProductRepository {
       }
 
       return this.buildUpdateKuantitasFailureResult("product");
+    }
+  }
+
+  /**
+   * Mengembalikan hasil gagal update/penambahan harga dengan pesan popup standar.
+   */
+  private buildUpdateHargaFailureResult(
+    stage: UpdateHargaErrorStage
+  ): UpdateProductHargaResult | AddProductHargaResult {
+    return {
+      success: false,
+      errorStage: stage,
+      error: UPDATE_HARGA_ERROR_MESSAGES[stage],
+    };
+  }
+
+  /**
+   * Melakukan rollback insert harga dan histori harga saat penambahan gagal.
+   */
+  private async rollbackAddHarga(state: AddHargaInsertState): Promise<void> {
+    const supabase = getSupabaseServerClient();
+
+    if (state.histHargaIds.length > 0) {
+      await supabase
+        .from(HISTORI_HARGA_TABLE)
+        .delete()
+        .in("hist_harga_id", state.histHargaIds);
+    }
+
+    if (state.hargaIds.length > 0) {
+      await supabase.from(HARGA_TABLE).delete().in("harga_id", state.hargaIds);
+    }
+  }
+
+  /**
+   * Mengambil product_id dari slug_id untuk operasi harga My Product.
+   */
+  private async getProductIdBySlug(
+    slugId: string
+  ): Promise<{ productId: string } | { error: string }> {
+    const supabase = getSupabaseServerClient();
+
+    const { data: productRow, error } = await supabase
+      .from(PRODUCT_TABLE)
+      .select("product_id")
+      .eq("slug_id", slugId)
+      .maybeSingle();
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    if (!productRow) {
+      return { error: "Product tidak ditemukan" };
+    }
+
+    return { productId: String(productRow.product_id) };
+  }
+
+  /**
+   * Memperbarui harga product existing dan insert histori harga berdasarkan slug_id.
+   */
+  async updateProductHargaBySlug(
+    slugId: string,
+    input: UpdateProductHargaInput
+  ): Promise<UpdateProductHargaResult> {
+    try {
+      const productLookup = await this.getProductIdBySlug(slugId);
+
+      if ("error" in productLookup) {
+        return { success: false, error: productLookup.error };
+      }
+
+      const supabase = getSupabaseServerClient();
+      const now = new Date();
+      const productId = productLookup.productId;
+
+      const { data: hargaRow, error: fetchError } = await supabase
+        .from(HARGA_TABLE)
+        .select("harga_id, harga, mata_uang")
+        .eq("harga_id", input.harga_id)
+        .eq("product_id", productId)
+        .maybeSingle();
+
+      if (fetchError) {
+        return this.buildUpdateHargaFailureResult("harga");
+      }
+
+      if (!hargaRow) {
+        return { success: false, error: "Data harga tidak ditemukan" };
+      }
+
+      const oldHarga = Number(hargaRow.harga);
+      const mataUang = String(hargaRow.mata_uang ?? "IDR");
+
+      if (Math.abs(oldHarga - input.harga) <= 0.001) {
+        return { success: false, error: "Nominal harga tidak berubah" };
+      }
+
+      try {
+        const { error: updateError } = await supabase
+          .from(HARGA_TABLE)
+          .update({ harga: input.harga })
+          .eq("harga_id", input.harga_id)
+          .eq("product_id", productId);
+
+        if (updateError) {
+          throw new Error(updateError.message);
+        }
+      } catch {
+        return this.buildUpdateHargaFailureResult("harga");
+      }
+
+      const catatan = buildHistoriEditHargaMyProductCatatan(
+        input.username,
+        input.name,
+        mataUang,
+        input.harga,
+        now
+      ).slice(0, 250);
+
+      try {
+        const { error: historiError } = await supabase
+          .from(HISTORI_HARGA_TABLE)
+          .insert({
+            harga_id: input.harga_id,
+            catatan,
+          });
+
+        if (historiError) {
+          throw new Error(historiError.message);
+        }
+      } catch {
+        await supabase
+          .from(HARGA_TABLE)
+          .update({ harga: oldHarga })
+          .eq("harga_id", input.harga_id);
+
+        return this.buildUpdateHargaFailureResult("histori_harga");
+      }
+
+      return { success: true };
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        return {
+          success: false,
+          errorStage: "harga",
+          error: "Request timeout (60 detik)",
+        };
+      }
+
+      return this.buildUpdateHargaFailureResult("harga");
+    }
+  }
+
+  /**
+   * Menambahkan harga product untuk customer baru berdasarkan slug_id.
+   */
+  async addProductHargaBySlug(
+    slugId: string,
+    input: AddProductHargaInput
+  ): Promise<AddProductHargaResult> {
+    const insertState: AddHargaInsertState = {
+      hargaIds: [],
+      histHargaIds: [],
+    };
+
+    try {
+      const productLookup = await this.getProductIdBySlug(slugId);
+
+      if ("error" in productLookup) {
+        return { success: false, error: productLookup.error };
+      }
+
+      const supabase = getSupabaseServerClient();
+      const now = new Date();
+      const productId = productLookup.productId;
+
+      const { data: existingHargaRows, error: existingError } = await supabase
+        .from(HARGA_TABLE)
+        .select("cust_id")
+        .eq("product_id", productId);
+
+      if (existingError) {
+        return this.buildUpdateHargaFailureResult("harga");
+      }
+
+      const existingCustIds = new Set(
+        (existingHargaRows ?? []).map((row) => String(row.cust_id))
+      );
+
+      for (const priceRow of input.priceRows) {
+        if (existingCustIds.has(priceRow.cust_id)) {
+          return {
+            success: false,
+            error: "Customer sudah memiliki harga untuk product ini",
+          };
+        }
+      }
+
+      for (const priceRow of input.priceRows) {
+        let hargaId: string | undefined;
+
+        try {
+          const { data: hargaData, error: hargaError } = await supabase
+            .from(HARGA_TABLE)
+            .insert({
+              product_id: productId,
+              cust_id: priceRow.cust_id,
+              harga: priceRow.harga,
+              mata_uang: priceRow.currency,
+            })
+            .select("harga_id")
+            .single();
+
+          if (hargaError || !hargaData) {
+            throw new Error(hargaError?.message ?? "insert harga failed");
+          }
+
+          hargaId = String(hargaData.harga_id);
+          insertState.hargaIds.push(hargaId);
+          existingCustIds.add(priceRow.cust_id);
+        } catch {
+          await this.rollbackAddHarga(insertState);
+          return this.buildUpdateHargaFailureResult("harga");
+        }
+
+        const hargaCatatan = buildHistoriAddHargaMyProductCatatan(
+          input.username,
+          input.name,
+          priceRow.currency,
+          priceRow.harga,
+          now
+        );
+
+        try {
+          const { data: histData, error: histHargaError } = await supabase
+            .from(HISTORI_HARGA_TABLE)
+            .insert({
+              harga_id: hargaId,
+              catatan: hargaCatatan.slice(0, 250),
+            })
+            .select("hist_harga_id")
+            .single();
+
+          if (histHargaError || !histData) {
+            throw new Error(
+              histHargaError?.message ?? "insert histori harga failed"
+            );
+          }
+
+          insertState.histHargaIds.push(String(histData.hist_harga_id));
+        } catch {
+          await this.rollbackAddHarga(insertState);
+          return this.buildUpdateHargaFailureResult("histori_harga");
+        }
+      }
+
+      return { success: true };
+    } catch (err) {
+      await this.rollbackAddHarga(insertState);
+
+      if (err instanceof Error && err.name === "AbortError") {
+        return {
+          success: false,
+          errorStage: "harga",
+          error: "Request timeout (60 detik)",
+        };
+      }
+
+      return this.buildUpdateHargaFailureResult("harga");
     }
   }
 }
