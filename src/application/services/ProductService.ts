@@ -8,6 +8,7 @@ import type {
   ListMyProductsParams,
   ListMyProductsResult,
 } from "@/domain/entities/MyProduct";
+import type { DeleteProductResult } from "@/domain/entities/DeleteProduct";
 import type {
   AddProductHargaPriceRow,
   AddProductHargaResult,
@@ -188,6 +189,18 @@ export class ProductService {
     );
 
     return (await response.json()) as AddProductHargaResult;
+  }
+
+  /**
+   * Menghapus product beserta seluruh data terkait melalui API My Product.
+   */
+  async deleteProduct(slugId: string): Promise<DeleteProductResult> {
+    const response = await fetch(
+      `/api/products/${encodeURIComponent(slugId)}`,
+      { method: "DELETE" }
+    );
+
+    return (await response.json()) as DeleteProductResult;
   }
 }
 

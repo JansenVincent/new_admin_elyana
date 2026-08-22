@@ -14,6 +14,7 @@ import type {
   MyProductListItem,
   MyProductPriceByCustomer,
 } from "@/domain/entities/MyProduct";
+import type { DeleteProductResult } from "@/domain/entities/DeleteProduct";
 import type {
   AddProductHargaInput,
   AddProductHargaResult,
@@ -28,6 +29,7 @@ import type {
 } from "@/domain/entities/UpdateKuantitas";
 import { getSupabaseServerClient } from "@/infrastructure/supabase/serverClient";
 import {
+  DELETE_PRODUCT_ERROR_MESSAGE,
   HARGA_TABLE,
   HISTORI_HARGA_TABLE,
   HISTORI_KELUAR_TABLE,
@@ -56,6 +58,56 @@ import {
   generateProductSlugId,
   slugifyProductName,
 } from "@/shared/utils/productSlug";
+
+/** Snapshot data product untuk rollback penghapusan. */
+interface DeleteProductSnapshot {
+  product: {
+    product_id: string;
+    slug_id: string;
+    nama_barang: string;
+    tipe_barang: string;
+    kuantitas: number;
+    satuan_kuantitas: string;
+    keterangan: string | null;
+    barcode: string;
+  } | null;
+  historiMasukRows: Array<{
+    masuk_id: string;
+    product_id: string;
+    tanggal_masuk: string;
+    kuantitas_masuk: number;
+    catatan: string;
+  }>;
+  historiKeluarRows: Array<{
+    keluar_id: string;
+    product_id: string;
+    tanggal_keluar: string;
+    kuantitas_keluar: number;
+    catatan: string;
+  }>;
+  hargaRows: Array<{
+    harga_id: string;
+    product_id: string;
+    cust_id: string;
+    harga: number;
+    mata_uang: string;
+  }>;
+  historiHargaRows: Array<{
+    hist_harga_id: string;
+    harga_id: string;
+    catatan: string;
+  }>;
+}
+
+/** Progress penghapusan product untuk kebutuhan rollback. */
+interface DeleteProductProgress {
+  snapshot: DeleteProductSnapshot;
+  deletedHistoriHarga: boolean;
+  deletedHarga: boolean;
+  deletedHistoriMasuk: boolean;
+  deletedHistoriKeluar: boolean;
+  deletedProduct: boolean;
+}
 
 /** State insert sementara untuk rollback penambahan harga My Product. */
 interface AddHargaInsertState {
@@ -1045,6 +1097,255 @@ export class SupabaseProductRepository implements ProductRepository {
       }
 
       return this.buildUpdateHargaFailureResult("harga");
+    }
+  }
+
+  /**
+   * Mengembalikan data product yang sudah terhapus sebagian ke database.
+   */
+  private async rollbackDeleteProduct(progress: DeleteProductProgress): Promise<void> {
+    const supabase = getSupabaseServerClient();
+    const { snapshot } = progress;
+
+    if (progress.deletedProduct && snapshot.product) {
+      await supabase.from(PRODUCT_TABLE).insert(snapshot.product);
+    }
+
+    if (progress.deletedHarga && snapshot.hargaRows.length > 0) {
+      await supabase.from(HARGA_TABLE).insert(snapshot.hargaRows);
+    }
+
+    if (progress.deletedHistoriMasuk && snapshot.historiMasukRows.length > 0) {
+      await supabase.from(HISTORI_MASUK_TABLE).insert(snapshot.historiMasukRows);
+    }
+
+    if (progress.deletedHistoriKeluar && snapshot.historiKeluarRows.length > 0) {
+      await supabase.from(HISTORI_KELUAR_TABLE).insert(snapshot.historiKeluarRows);
+    }
+
+    if (progress.deletedHistoriHarga && snapshot.historiHargaRows.length > 0) {
+      await supabase.from(HISTORI_HARGA_TABLE).insert(snapshot.historiHargaRows);
+    }
+  }
+
+  /**
+   * Mengambil snapshot seluruh data terkait product sebelum penghapusan.
+   */
+  private async fetchDeleteProductSnapshot(
+    productId: string
+  ): Promise<DeleteProductSnapshot | null> {
+    const supabase = getSupabaseServerClient();
+
+    const { data: productRow, error: productError } = await supabase
+      .from(PRODUCT_TABLE)
+      .select(
+        "product_id, slug_id, nama_barang, tipe_barang, kuantitas, satuan_kuantitas, keterangan, barcode"
+      )
+      .eq("product_id", productId)
+      .maybeSingle();
+
+    if (productError || !productRow) {
+      return null;
+    }
+
+    const { data: hargaRows } = await supabase
+      .from(HARGA_TABLE)
+      .select("harga_id, product_id, cust_id, harga, mata_uang")
+      .eq("product_id", productId);
+
+    const hargaIds = (hargaRows ?? []).map((row) => String(row.harga_id));
+
+    let historiHargaRows: DeleteProductSnapshot["historiHargaRows"] = [];
+
+    if (hargaIds.length > 0) {
+      const { data: historiHargaData } = await supabase
+        .from(HISTORI_HARGA_TABLE)
+        .select("hist_harga_id, harga_id, catatan")
+        .in("harga_id", hargaIds);
+
+      historiHargaRows = (historiHargaData ?? []).map((row) => ({
+        hist_harga_id: String(row.hist_harga_id),
+        harga_id: String(row.harga_id),
+        catatan: String(row.catatan ?? ""),
+      }));
+    }
+
+    const { data: historiMasukRows } = await supabase
+      .from(HISTORI_MASUK_TABLE)
+      .select("masuk_id, product_id, tanggal_masuk, kuantitas_masuk, catatan")
+      .eq("product_id", productId);
+
+    const { data: historiKeluarRows } = await supabase
+      .from(HISTORI_KELUAR_TABLE)
+      .select("keluar_id, product_id, tanggal_keluar, kuantitas_keluar, catatan")
+      .eq("product_id", productId);
+
+    return {
+      product: {
+        product_id: String(productRow.product_id),
+        slug_id: String(productRow.slug_id ?? ""),
+        nama_barang: String(productRow.nama_barang ?? ""),
+        tipe_barang: String(productRow.tipe_barang ?? ""),
+        kuantitas: Number(productRow.kuantitas),
+        satuan_kuantitas: String(productRow.satuan_kuantitas ?? ""),
+        keterangan: productRow.keterangan
+          ? String(productRow.keterangan)
+          : null,
+        barcode: String(productRow.barcode ?? ""),
+      },
+      historiMasukRows: (historiMasukRows ?? []).map((row) => ({
+        masuk_id: String(row.masuk_id),
+        product_id: String(row.product_id),
+        tanggal_masuk: String(row.tanggal_masuk).slice(0, 10),
+        kuantitas_masuk: Number(row.kuantitas_masuk),
+        catatan: String(row.catatan ?? ""),
+      })),
+      historiKeluarRows: (historiKeluarRows ?? []).map((row) => ({
+        keluar_id: String(row.keluar_id),
+        product_id: String(row.product_id),
+        tanggal_keluar: String(row.tanggal_keluar).slice(0, 10),
+        kuantitas_keluar: Number(row.kuantitas_keluar),
+        catatan: String(row.catatan ?? ""),
+      })),
+      hargaRows: (hargaRows ?? []).map((row) => ({
+        harga_id: String(row.harga_id),
+        product_id: String(row.product_id),
+        cust_id: String(row.cust_id),
+        harga: Number(row.harga),
+        mata_uang: String(row.mata_uang ?? "IDR"),
+      })),
+      historiHargaRows,
+    };
+  }
+
+  /**
+   * Menghapus product beserta seluruh data terkait secara berurutan dengan rollback.
+   */
+  async deleteProductBySlug(slugId: string): Promise<DeleteProductResult> {
+    const progress: DeleteProductProgress = {
+      snapshot: {
+        product: null,
+        historiMasukRows: [],
+        historiKeluarRows: [],
+        hargaRows: [],
+        historiHargaRows: [],
+      },
+      deletedHistoriHarga: false,
+      deletedHarga: false,
+      deletedHistoriMasuk: false,
+      deletedHistoriKeluar: false,
+      deletedProduct: false,
+    };
+
+    try {
+      const productLookup = await this.getProductIdBySlug(slugId);
+
+      if ("error" in productLookup) {
+        return { success: false, error: productLookup.error };
+      }
+
+      const productId = productLookup.productId;
+      const snapshot = await this.fetchDeleteProductSnapshot(productId);
+
+      if (!snapshot?.product) {
+        return { success: false, error: "Product tidak ditemukan" };
+      }
+
+      progress.snapshot = snapshot;
+      const supabase = getSupabaseServerClient();
+      const hargaIds = snapshot.hargaRows.map((row) => row.harga_id);
+
+      try {
+        if (hargaIds.length > 0) {
+          const { error } = await supabase
+            .from(HISTORI_HARGA_TABLE)
+            .delete()
+            .in("harga_id", hargaIds);
+
+          if (error) {
+            throw new Error(error.message);
+          }
+        }
+
+        progress.deletedHistoriHarga = true;
+      } catch {
+        await this.rollbackDeleteProduct(progress);
+        return { success: false, error: DELETE_PRODUCT_ERROR_MESSAGE };
+      }
+
+      try {
+        const { error } = await supabase
+          .from(HARGA_TABLE)
+          .delete()
+          .eq("product_id", productId);
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        progress.deletedHarga = true;
+      } catch {
+        await this.rollbackDeleteProduct(progress);
+        return { success: false, error: DELETE_PRODUCT_ERROR_MESSAGE };
+      }
+
+      try {
+        const { error } = await supabase
+          .from(HISTORI_MASUK_TABLE)
+          .delete()
+          .eq("product_id", productId);
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        progress.deletedHistoriMasuk = true;
+      } catch {
+        await this.rollbackDeleteProduct(progress);
+        return { success: false, error: DELETE_PRODUCT_ERROR_MESSAGE };
+      }
+
+      try {
+        const { error } = await supabase
+          .from(HISTORI_KELUAR_TABLE)
+          .delete()
+          .eq("product_id", productId);
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        progress.deletedHistoriKeluar = true;
+      } catch {
+        await this.rollbackDeleteProduct(progress);
+        return { success: false, error: DELETE_PRODUCT_ERROR_MESSAGE };
+      }
+
+      try {
+        const { error } = await supabase
+          .from(PRODUCT_TABLE)
+          .delete()
+          .eq("product_id", productId);
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        progress.deletedProduct = true;
+      } catch {
+        await this.rollbackDeleteProduct(progress);
+        return { success: false, error: DELETE_PRODUCT_ERROR_MESSAGE };
+      }
+
+      return { success: true };
+    } catch (err) {
+      await this.rollbackDeleteProduct(progress);
+
+      if (err instanceof Error && err.name === "AbortError") {
+        return { success: false, error: DELETE_PRODUCT_ERROR_MESSAGE };
+      }
+
+      return { success: false, error: DELETE_PRODUCT_ERROR_MESSAGE };
     }
   }
 }

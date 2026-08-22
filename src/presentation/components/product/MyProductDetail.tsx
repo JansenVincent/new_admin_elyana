@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { productService } from "@/application/services/ProductService";
 import type { ActiveCustomerOption } from "@/domain/entities/InputBarang";
@@ -8,8 +9,11 @@ import type { MyProductDetail, MyProductPriceByCustomer } from "@/domain/entitie
 import AddHargaDialog from "@/presentation/components/product/AddHargaDialog";
 import EditHargaDialog from "@/presentation/components/product/EditHargaDialog";
 import EditKuantitasDialog from "@/presentation/components/product/EditKuantitasDialog";
+import ConfirmDialog from "@/presentation/components/ui/ConfirmDialog";
+import ErrorPopup from "@/presentation/components/ui/ErrorPopup";
 import LoadingOverlay from "@/presentation/components/ui/LoadingOverlay";
 import { useAuthSession } from "@/shared/hooks/useAuthSession";
+import { DELETE_PRODUCT_ERROR_MESSAGE } from "@/shared/constants/product";
 import { formatHargaDisplay } from "@/shared/utils/formatCatatan";
 import {
   formatHistoriBarangDate,
@@ -29,6 +33,7 @@ interface MyProductDetailViewProps {
 export default function MyProductDetailView({
   slugId,
 }: MyProductDetailViewProps) {
+  const router = useRouter();
   const { user } = useAuthSession();
   const [product, setProduct] = useState<MyProductDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -43,6 +48,9 @@ export default function MyProductDetailView({
     []
   );
   const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteError, setShowDeleteError] = useState(false);
 
   /**
    * Mengambil detail product beserta harga dan histori barang.
@@ -113,6 +121,29 @@ export default function MyProductDetailView({
   function handleOpenEditHarga(price: MyProductPriceByCustomer) {
     setSelectedPrice(price);
     setShowEditHarga(true);
+  }
+
+  /**
+   * Menghapus product beserta seluruh data terkait setelah konfirmasi.
+   */
+  async function handleConfirmDeleteProduct() {
+    if (!product) {
+      return;
+    }
+
+    setShowDeleteConfirm(false);
+    setIsDeleting(true);
+
+    const result = await productService.deleteProduct(product.slug_id);
+
+    setIsDeleting(false);
+
+    if (result.success) {
+      router.push("/product/my-product");
+      return;
+    }
+
+    setShowDeleteError(true);
   }
 
   if (notFound && !isLoading) {
@@ -202,28 +233,52 @@ export default function MyProductDetailView({
               </p>
             </div>
             {user && (
-              <button
-                type="button"
-                onClick={() => setShowEditKuantitas(true)}
-                className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="h-4 w-4"
-                  aria-hidden="true"
+              <div className="flex shrink-0 flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEditKuantitas(true)}
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                  />
-                </svg>
-                Edit Kuantitas
-              </button>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="h-4 w-4"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                    />
+                  </svg>
+                  Edit Kuantitas
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="h-4 w-4"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                    />
+                  </svg>
+                  Hapus Produk
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -399,7 +454,22 @@ export default function MyProductDetailView({
         </>
       )}
 
-      <LoadingOverlay visible={isLoading} />
+      <ConfirmDialog
+        visible={showDeleteConfirm}
+        message={`Apakah Anda yakin akan menghapus seluruh data terkait produk ${toTitleCase(product.nama_barang)}?`}
+        note="Catatan: Data produk yang sudah di hapus tidak akan bisa di kembalikan."
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleConfirmDeleteProduct}
+        isLoading={isDeleting}
+      />
+
+      <ErrorPopup
+        visible={showDeleteError}
+        message={DELETE_PRODUCT_ERROR_MESSAGE}
+        onClose={() => setShowDeleteError(false)}
+      />
+
+      <LoadingOverlay visible={isLoading || isDeleting} />
     </>
   );
 }

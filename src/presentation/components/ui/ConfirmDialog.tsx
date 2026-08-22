@@ -9,6 +9,8 @@ interface ConfirmDialogProps {
   onConfirm: () => void;
   /** Teks pesan konfirmasi. */
   message: string;
+  /** Catatan tambahan dengan ukuran font lebih kecil (opsional). */
+  note?: string;
   /** Label tombol konfirmasi. */
   confirmLabel?: string;
   /** Label tombol batal. */
@@ -25,6 +27,7 @@ export default function ConfirmDialog({
   onClose,
   onConfirm,
   message,
+  note,
   confirmLabel = "Ya",
   cancelLabel = "Tidak",
   isLoading = false,
@@ -65,6 +68,9 @@ export default function ConfirmDialog({
           >
             {message}
           </p>
+          {note && (
+            <p className="mt-3 text-xs leading-relaxed text-slate-500">{note}</p>
+          )}
           <div className="mt-6 flex w-full gap-3">
             <button
               type="button"

@@ -8,6 +8,7 @@ import type {
   ListMyProductsParams,
   ListMyProductsResult,
 } from "@/domain/entities/MyProduct";
+import type { DeleteProductResult } from "@/domain/entities/DeleteProduct";
 import type {
   AddProductHargaInput,
   AddProductHargaResult,
@@ -70,4 +71,9 @@ export interface ProductRepository {
     slugId: string,
     input: AddProductHargaInput
   ): Promise<AddProductHargaResult>;
+
+  /**
+   * Menghapus product beserta seluruh data terkait berdasarkan slug_id.
+   */
+  deleteProductBySlug(slugId: string): Promise<DeleteProductResult>;
 }

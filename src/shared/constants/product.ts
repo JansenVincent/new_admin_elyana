@@ -104,6 +104,10 @@ export const UPDATE_HARGA_ERROR_MESSAGES: Record<
   histori_harga: UPDATE_HARGA_ERROR_HISTORI_HARGA,
 };
 
+/** Pesan error saat gagal menghapus product dari My Product. */
+export const DELETE_PRODUCT_ERROR_MESSAGE =
+  "Gagal menghapus data. Silakan coba beberapa saat lagi";
+
 /** Tahap penyimpanan Input Barang yang gagal di database. */
 export type InputBarangSaveErrorStage =
   | "product"
