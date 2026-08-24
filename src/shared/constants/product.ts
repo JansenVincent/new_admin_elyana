@@ -41,9 +41,6 @@ export const UPDATE_KUANTITAS_ERROR_MESSAGES = {
   histori_keluar: UPDATE_KUANTITAS_ERROR_HISTORI_KELUAR,
 } as const;
 
-/** @deprecated Gunakan PRODUCT_TABLE. Tabel lama Input Stock sebelum refactor flow. */
-export const PRODUCT_STOCK_TABLE = "Admin_Ely_Product_Stock";
-
 /** Opsi jenis barang pada form Input Barang. */
 export const PRODUCT_JENIS_OPTIONS = [
   "Aksesoris",
@@ -73,9 +70,6 @@ export const MAX_KETERANGAN_LENGTH = 250;
 
 /** Panjang maksimum satuan barang. */
 export const MAX_SATUAN_BARANG_LENGTH = 50;
-
-/** @deprecated Gunakan MAX_KETERANGAN_LENGTH */
-export const MAX_DETAIL_BARANG_LENGTH = MAX_KETERANGAN_LENGTH;
 
 /** Ekstensi gambar yang didukung untuk upload barcode. */
 export const SUPPORTED_BARCODE_IMAGE_EXTENSIONS =

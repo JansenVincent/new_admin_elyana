@@ -7,6 +7,7 @@ import ConfirmDialog from "@/presentation/components/ui/ConfirmDialog";
 import ErrorPopup from "@/presentation/components/ui/ErrorPopup";
 import LoadingOverlay from "@/presentation/components/ui/LoadingOverlay";
 import { MAX_EDIT_KUANTITAS_CATATAN_LENGTH } from "@/shared/constants/product";
+import { formInputClassName } from "@/shared/constants/formInput";
 import { useBlurFieldValidation } from "@/shared/hooks/useBlurFieldValidation";
 import {
   hasNoEditKuantitasErrors,
@@ -16,8 +17,7 @@ import {
 } from "@/shared/utils/editKuantitasValidation";
 import { getTodayWibDateInputValue } from "@/shared/utils/timestamp";
 
-const inputClassName =
-  "w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-slate-500 focus:bg-white focus:ring-2 focus:ring-slate-200";
+const inputClassName = formInputClassName;
 
 interface EditKuantitasDialogProps {
   /** Apakah dialog edit kuantitas ditampilkan. */

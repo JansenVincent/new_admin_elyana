@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { productService } from "@/application/services/ProductService";
 import type { ActiveCustomerOption, PriceRowInput } from "@/domain/entities/InputBarang";
+import CustomSelect from "@/presentation/components/ui/CustomSelect";
 import ConfirmDialog from "@/presentation/components/ui/ConfirmDialog";
 import ErrorPopup from "@/presentation/components/ui/ErrorPopup";
 import LoadingOverlay from "@/presentation/components/ui/LoadingOverlay";
@@ -11,10 +12,8 @@ import {
   getAvailableCustomersForRow,
 } from "@/shared/hooks/useBlurFieldValidation";
 import { CURRENCY_OPTIONS } from "@/shared/constants/product";
+import { nominalInputClassName } from "@/shared/constants/formInput";
 import { validatePriceRow, validateStep3 } from "@/shared/utils/inputBarangValidation";
-
-const inputClassName =
-  "w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-slate-500 focus:bg-white focus:ring-2 focus:ring-slate-200";
 
 /**
  * Membuat baris harga kosong dengan key unik untuk React list.
@@ -159,21 +158,49 @@ export default function AddHargaDialog({
   /**
    * Menangani blur field baris harga dengan validasi langsung.
    */
-  function handlePriceRowFieldBlur(rowKey: string, field: string) {
+  function handlePriceRowFieldBlur(
+    rowKey: string,
+    field: string,
+    overrides?: Partial<Pick<PriceRowInput, "cust_id" | "currency" | "harga">>
+  ) {
     const row = priceRows.find((item) => item.rowKey === rowKey);
     if (!row) {
       return;
     }
 
-    const errors = validatePriceRow(row);
+    const rowToValidate = overrides ? { ...row, ...overrides } : row;
+    const errors = validatePriceRow(rowToValidate);
+
     setBlurredPriceFields((prev) => ({
       ...prev,
       [rowKey]: new Set(prev[rowKey] ?? []).add(field),
     }));
-    setPriceRowErrors((prev) => ({
-      ...prev,
-      [rowKey]: errors,
-    }));
+
+    setPriceRowErrors((prev) => {
+      const rowErr = { ...(prev[rowKey] ?? {}) };
+      if (errors[field]) {
+        rowErr[field] = errors[field];
+      } else {
+        delete rowErr[field];
+      }
+
+      if (Object.keys(rowErr).length === 0) {
+        const next = { ...prev };
+        delete next[rowKey];
+        return next;
+      }
+
+      return { ...prev, [rowKey]: rowErr };
+    });
+  }
+
+  /**
+   * Memperbarui nominal harga dengan input angka saja (maks. 2 desimal).
+   */
+  function updatePriceRowHarga(rowKey: string, rawValue: string) {
+    if (rawValue === "" || /^\d+(\.\d{0,2})?$/.test(rawValue)) {
+      updatePriceRow(rowKey, "harga", rawValue);
+    }
   }
 
   /**
@@ -400,26 +427,27 @@ export default function AddHargaDialog({
                           >
                             Customer
                           </label>
-                          <select
+                          <CustomSelect
                             id={`add-customer-${row.rowKey}`}
                             value={row.cust_id}
-                            onChange={(event) =>
-                              updatePriceRow(row.rowKey, "cust_id", event.target.value)
+                            onChange={(nextValue) =>
+                              updatePriceRow(row.rowKey, "cust_id", nextValue)
                             }
-                            onBlur={() =>
-                              handlePriceRowFieldBlur(row.rowKey, "cust_id")
+                            onBlur={(selectedValue) =>
+                              handlePriceRowFieldBlur(
+                                row.rowKey,
+                                "cust_id",
+                                selectedValue
+                                  ? { cust_id: selectedValue }
+                                  : undefined
+                              )
                             }
-                            className={inputClassName}
-                          >
-                            <option value="" disabled>
-                              Pilih customer
-                            </option>
-                            {customersForRow.map((customer) => (
-                              <option key={customer.cust_id} value={customer.cust_id}>
-                                {customer.cust_name}
-                              </option>
-                            ))}
-                          </select>
+                            placeholder="Pilih customer"
+                            options={customersForRow.map((customer) => ({
+                              value: customer.cust_id,
+                              label: customer.cust_name,
+                            }))}
+                          />
                           {getPriceRowFieldError(row.rowKey, "cust_id") && (
                             <p className="mt-1.5 text-sm text-red-600">
                               {getPriceRowFieldError(row.rowKey, "cust_id")}
@@ -434,43 +462,46 @@ export default function AddHargaDialog({
                           >
                             Harga
                           </label>
-                          <div className="grid grid-cols-5 gap-3">
-                            <select
+                          <div className="flex gap-3">
+                            <CustomSelect
                               id={`add-currency-${row.rowKey}`}
                               value={row.currency}
-                              onChange={(event) =>
-                                updatePriceRow(
+                              onChange={(nextValue) =>
+                                updatePriceRow(row.rowKey, "currency", nextValue)
+                              }
+                              onBlur={(selectedValue) =>
+                                handlePriceRowFieldBlur(
                                   row.rowKey,
                                   "currency",
-                                  event.target.value
+                                  selectedValue
+                                    ? { currency: selectedValue }
+                                    : undefined
                                 )
                               }
-                              onBlur={() =>
-                                handlePriceRowFieldBlur(row.rowKey, "currency")
-                              }
-                              className={`${inputClassName} col-span-2`}
+                              options={CURRENCY_OPTIONS.map((option) => ({
+                                value: option.code,
+                                label: option.label,
+                              }))}
+                              className="w-[40%] shrink-0"
                               aria-label="Mata uang"
-                            >
-                              {CURRENCY_OPTIONS.map((option) => (
-                                <option key={option.code} value={option.code}>
-                                  {option.label}
-                                </option>
-                              ))}
-                            </select>
+                            />
                             <input
                               id={`add-harga-${row.rowKey}`}
-                              type="number"
-                              min="0"
-                              step="0.01"
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
                               value={row.harga}
                               onChange={(event) =>
-                                updatePriceRow(row.rowKey, "harga", event.target.value)
+                                updatePriceRowHarga(
+                                  row.rowKey,
+                                  event.target.value
+                                )
                               }
                               onBlur={() =>
                                 handlePriceRowFieldBlur(row.rowKey, "harga")
                               }
                               placeholder="Nominal"
-                              className={`${inputClassName} col-span-3`}
+                              className={`${nominalInputClassName} min-w-0 flex-1`}
                             />
                           </div>
                           {(getPriceRowFieldError(row.rowKey, "currency") ||

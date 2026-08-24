@@ -7,8 +7,9 @@ import type {
   PriceRowInput,
   ProductJenis,
 } from "@/domain/entities/InputBarang";
-import ErrorPopup from "@/presentation/components/ui/ErrorPopup";
+import CustomSelect from "@/presentation/components/ui/CustomSelect";
 import ConfirmDialog from "@/presentation/components/ui/ConfirmDialog";
+import ErrorPopup from "@/presentation/components/ui/ErrorPopup";
 import LoadingOverlay from "@/presentation/components/ui/LoadingOverlay";
 import { useAuthSession } from "@/shared/hooks/useAuthSession";
 import {
@@ -23,6 +24,7 @@ import {
   PRODUCT_JENIS_OPTIONS,
   SUPPORTED_BARCODE_IMAGE_EXTENSIONS,
 } from "@/shared/constants/product";
+import { formInputClassName, nominalInputClassName } from "@/shared/constants/formInput";
 import {
   getStep1FieldError,
   getStep2FieldError,
@@ -43,8 +45,7 @@ const FORM_STEPS = [
   { number: 4, label: "Barcode" },
 ] as const;
 
-const inputClassName =
-  "w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-slate-500 focus:bg-white focus:ring-2 focus:ring-slate-200";
+const inputClassName = formInputClassName;
 
 /**
  * Membuat baris harga kosong dengan key unik untuk React list.
@@ -196,8 +197,15 @@ export default function InputStockForm() {
   /**
    * Menangani blur field step 1 dengan validasi langsung.
    */
-  function handleStep1FieldBlur(field: Step1FieldName) {
-    handleFieldBlur(field, getStep1FieldError(field, step1Values));
+  function handleStep1FieldBlur(field: Step1FieldName, selectedValue?: string) {
+    const nextValues = {
+      ...step1Values,
+      ...(field === "jenis" && selectedValue !== undefined
+        ? { jenis: selectedValue }
+        : {}),
+    };
+
+    handleFieldBlur(field, getStep1FieldError(field, nextValues));
   }
 
   /**
@@ -225,14 +233,16 @@ export default function InputStockForm() {
    */
   function handlePriceRowFieldBlur(
     rowKey: string,
-    field: "cust_id" | "harga" | "currency"
+    field: "cust_id" | "harga" | "currency",
+    overrides?: Partial<Pick<PriceRowInput, "cust_id" | "currency" | "harga">>
   ) {
     const row = priceRows.find((item) => item.rowKey === rowKey);
     if (!row) {
       return;
     }
 
-    const errors = validatePriceRow(row);
+    const rowToValidate = overrides ? { ...row, ...overrides } : row;
+    const errors = validatePriceRow(rowToValidate);
 
     setBlurredPriceFields((prev) => ({
       ...prev,
@@ -352,6 +362,15 @@ export default function InputStockForm() {
 
     const file = event.dataTransfer.files[0] ?? null;
     handleBarcodeFile(file);
+  }
+
+  /**
+   * Memperbarui nominal harga dengan input angka saja (maks. 2 desimal).
+   */
+  function updatePriceRowHarga(rowKey: string, rawValue: string) {
+    if (rawValue === "" || /^\d+(\.\d{0,2})?$/.test(rawValue)) {
+      updatePriceRow(rowKey, "harga", rawValue);
+    }
   }
 
   /**
@@ -643,24 +662,21 @@ export default function InputStockForm() {
                   >
                     Jenis
                   </label>
-                  <select
+                  <CustomSelect
                     id="jenis"
                     value={jenis}
-                    onChange={(event) =>
-                      setJenis(event.target.value as ProductJenis | "")
+                    onChange={(nextValue) =>
+                      setJenis(nextValue as ProductJenis | "")
                     }
-                    onBlur={() => handleStep1FieldBlur("jenis")}
-                    className={inputClassName}
-                  >
-                    <option value="" disabled>
-                      Pilih jenis barang
-                    </option>
-                    {PRODUCT_JENIS_OPTIONS.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
+                    onBlur={(selectedValue) =>
+                      handleStep1FieldBlur("jenis", selectedValue)
+                    }
+                    placeholder="Pilih jenis barang"
+                    options={PRODUCT_JENIS_OPTIONS.map((option) => ({
+                      value: option,
+                      label: option,
+                    }))}
+                  />
                   {getFieldError("jenis") && (
                     <p className="mt-1.5 text-sm text-red-600">
                       {getFieldError("jenis")}
@@ -827,33 +843,27 @@ export default function InputStockForm() {
                               >
                                 Customer
                               </label>
-                              <select
+                              <CustomSelect
                                 id={`customer-${row.rowKey}`}
                                 value={row.cust_id}
-                                onChange={(event) =>
-                                  updatePriceRow(
+                                onChange={(nextValue) =>
+                                  updatePriceRow(row.rowKey, "cust_id", nextValue)
+                                }
+                                onBlur={(selectedValue) =>
+                                  handlePriceRowFieldBlur(
                                     row.rowKey,
                                     "cust_id",
-                                    event.target.value
+                                    selectedValue
+                                      ? { cust_id: selectedValue }
+                                      : undefined
                                   )
                                 }
-                                onBlur={() =>
-                                  handlePriceRowFieldBlur(row.rowKey, "cust_id")
-                                }
-                                className={inputClassName}
-                              >
-                                <option value="" disabled>
-                                  Pilih customer
-                                </option>
-                                {availableCustomers.map((customer) => (
-                                  <option
-                                    key={customer.cust_id}
-                                    value={customer.cust_id}
-                                  >
-                                    {customer.cust_name}
-                                  </option>
-                                ))}
-                              </select>
+                                placeholder="Pilih customer"
+                                options={availableCustomers.map((customer) => ({
+                                  value: customer.cust_id,
+                                  label: customer.cust_name,
+                                }))}
+                              />
                               {getPriceRowFieldError(row.rowKey, "cust_id") && (
                                 <p className="mt-1.5 text-sm text-red-600">
                                   {getPriceRowFieldError(row.rowKey, "cust_id")}
@@ -868,39 +878,38 @@ export default function InputStockForm() {
                               >
                                 Harga
                               </label>
-                              <div className="grid grid-cols-5 gap-3">
-                                <select
+                              <div className="flex gap-3">
+                                <CustomSelect
                                   id={`currency-${row.rowKey}`}
                                   value={row.currency}
-                                  onChange={(event) =>
-                                    updatePriceRow(
+                                  onChange={(nextValue) =>
+                                    updatePriceRow(row.rowKey, "currency", nextValue)
+                                  }
+                                  onBlur={(selectedValue) =>
+                                    handlePriceRowFieldBlur(
                                       row.rowKey,
                                       "currency",
-                                      event.target.value
+                                      selectedValue
+                                        ? { currency: selectedValue }
+                                        : undefined
                                     )
                                   }
-                                  onBlur={() =>
-                                    handlePriceRowFieldBlur(row.rowKey, "currency")
-                                  }
-                                  className={`${inputClassName} col-span-2`}
+                                  options={CURRENCY_OPTIONS.map((option) => ({
+                                    value: option.code,
+                                    label: option.label,
+                                  }))}
+                                  className="w-[40%] shrink-0"
                                   aria-label="Mata uang"
-                                >
-                                  {CURRENCY_OPTIONS.map((option) => (
-                                    <option key={option.code} value={option.code}>
-                                      {option.label}
-                                    </option>
-                                  ))}
-                                </select>
+                                />
                                 <input
                                   id={`harga-${row.rowKey}`}
-                                  type="number"
-                                  min="0"
-                                  step="0.01"
+                                  type="text"
+                                  inputMode="numeric"
+                                  pattern="[0-9]*"
                                   value={row.harga}
                                   onChange={(event) =>
-                                    updatePriceRow(
+                                    updatePriceRowHarga(
                                       row.rowKey,
-                                      "harga",
                                       event.target.value
                                     )
                                   }
@@ -908,7 +917,7 @@ export default function InputStockForm() {
                                     handlePriceRowFieldBlur(row.rowKey, "harga")
                                   }
                                   placeholder="Masukkan harga barang"
-                                  className={`${inputClassName} col-span-3`}
+                                  className={`${nominalInputClassName} min-w-0 flex-1`}
                                 />
                               </div>
                               {(getPriceRowFieldError(row.rowKey, "harga") ||

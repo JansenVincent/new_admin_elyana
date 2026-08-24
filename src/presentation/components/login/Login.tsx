@@ -7,6 +7,10 @@ import ErrorPopup from "@/presentation/components/ui/ErrorPopup";
 import LoadingOverlay from "@/presentation/components/ui/LoadingOverlay";
 import PasswordField from "@/presentation/components/ui/PasswordField";
 import { isLoginFormValid } from "@/shared/utils/accountValidation";
+import {
+  MAX_LOGIN_USERNAME_LENGTH,
+  NO_BROWSER_AUTOFILL_PROPS,
+} from "@/shared/constants/formInput";
 
 const LOGIN_ERROR_MESSAGE =
   "Gagal Login.\nMasukkan Username dan Password yang sesuai.";
@@ -82,7 +86,24 @@ export default function Login() {
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="relative space-y-5" autoComplete="off">
+              <input
+                type="text"
+                name="prevent-browser-username"
+                autoComplete="username"
+                tabIndex={-1}
+                aria-hidden="true"
+                className="pointer-events-none absolute h-0 w-0 opacity-0"
+              />
+              <input
+                type="password"
+                name="prevent-browser-password"
+                autoComplete="new-password"
+                tabIndex={-1}
+                aria-hidden="true"
+                className="pointer-events-none absolute h-0 w-0 opacity-0"
+              />
+
               <div>
                 <label
                   htmlFor="username"
@@ -92,12 +113,18 @@ export default function Login() {
                 </label>
                 <input
                   id="username"
+                  name="login-username-field"
                   type="text"
                   value={username}
-                  onChange={(event) => setUsername(event.target.value)}
-                  autoComplete="username"
+                  onChange={(event) =>
+                    setUsername(
+                      event.target.value.slice(0, MAX_LOGIN_USERNAME_LENGTH)
+                    )
+                  }
+                  maxLength={MAX_LOGIN_USERNAME_LENGTH}
                   placeholder="Contoh: admin123"
                   className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-slate-500 focus:bg-white focus:ring-2 focus:ring-slate-200"
+                  {...NO_BROWSER_AUTOFILL_PROPS}
                 />
               </div>
 
@@ -107,7 +134,7 @@ export default function Login() {
                 value={password}
                 onChange={setPassword}
                 placeholder="Password123"
-                autoComplete="current-password"
+                disableBrowserSuggestions
                 maxLength={undefined}
               />
 

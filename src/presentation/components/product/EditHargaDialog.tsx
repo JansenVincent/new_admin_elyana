@@ -14,8 +14,7 @@ import {
 } from "@/shared/utils/editHargaValidation";
 import { toTitleCase } from "@/shared/utils/stringFormat";
 
-const inputClassName =
-  "w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-slate-500 focus:bg-white focus:ring-2 focus:ring-slate-200";
+import { nominalInputClassName } from "@/shared/constants/formInput";
 
 interface EditHargaDialogProps {
   /** Apakah dialog edit harga ditampilkan. */
@@ -218,14 +217,13 @@ export default function EditHargaDialog({
               </label>
               <input
                 id="editHargaNominal"
-                type="number"
-                min="0"
-                step="0.01"
+                type="text"
+                inputMode="decimal"
                 value={harga}
                 onChange={(event) => setHarga(event.target.value)}
                 onBlur={() => handleFieldBlur("harga", hargaError)}
                 placeholder="Masukkan nominal harga"
-                className={inputClassName}
+                className={nominalInputClassName}
               />
               {getFieldError("harga") && (
                 <p className="mt-1.5 text-sm text-red-600">{getFieldError("harga")}</p>

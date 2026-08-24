@@ -22,9 +22,12 @@ import {
 } from "@/shared/utils/customerValidation";
 import { useBlurFieldValidation } from "@/shared/hooks/useBlurFieldValidation";
 import { toTitleCase } from "@/shared/utils/stringFormat";
+import {
+  formInputClassName,
+  NO_BROWSER_AUTOFILL_PROPS,
+} from "@/shared/constants/formInput";
 
-const inputClassName =
-  "w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-slate-500 focus:bg-white focus:ring-2 focus:ring-slate-200";
+const inputClassName = formInputClassName;
 
 /**
  * Halaman daftar customer dengan paginasi, pencarian, tambah, sunting, dan hapus.
@@ -594,6 +597,7 @@ export default function CustomerList() {
 
             <form
               className="mt-6 space-y-4"
+              autoComplete="off"
               onSubmit={(event) => {
                 event.preventDefault();
                 const errors = validateCreateCustomerForm(addFormValues);
@@ -610,8 +614,11 @@ export default function CustomerList() {
                 </label>
                 <input
                   id="custName"
+                  name="customer-company-field"
                   type="text"
                   value={custName}
+                  readOnly
+                  onFocus={(event) => event.currentTarget.removeAttribute("readonly")}
                   onChange={(event) =>
                     setCustName(
                       clampCustomerField(event.target.value, MAX_CUST_NAME_LENGTH)
@@ -621,6 +628,7 @@ export default function CustomerList() {
                   maxLength={MAX_CUST_NAME_LENGTH}
                   placeholder="Masukkan nama customer baru"
                   className={inputClassName}
+                  {...NO_BROWSER_AUTOFILL_PROPS}
                 />
                 {getAddFieldError("custName") && (
                   <p className="mt-1.5 text-sm text-red-600">{getAddFieldError("custName")}</p>

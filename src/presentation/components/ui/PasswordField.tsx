@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { MAX_ACCOUNT_FIELD_LENGTH } from "@/shared/constants/account";
+import { NO_BROWSER_AUTOFILL_PROPS } from "@/shared/constants/formInput";
 
 interface PasswordFieldProps {
   /** ID elemen input. */
@@ -18,6 +19,8 @@ interface PasswordFieldProps {
   error?: string;
   /** Autocomplete attribute untuk input password. */
   autoComplete?: string;
+  /** Menonaktifkan saran password dari browser. */
+  disableBrowserSuggestions?: boolean;
   /** Panjang maksimum karakter input (opsional). */
   maxLength?: number;
   /** Callback saat field kehilangan fokus. */
@@ -83,6 +86,7 @@ export default function PasswordField({
   placeholder,
   error,
   autoComplete = "new-password",
+  disableBrowserSuggestions = false,
   maxLength = MAX_ACCOUNT_FIELD_LENGTH,
   onBlur,
 }: PasswordFieldProps) {
@@ -106,14 +110,17 @@ export default function PasswordField({
       <div className="relative">
         <input
           id={id}
+          name={disableBrowserSuggestions ? "login-password-field" : undefined}
           type={isVisible ? "text" : "password"}
           value={value}
           onChange={handleChange}
           onBlur={onBlur}
           maxLength={maxLength}
-          autoComplete={autoComplete}
           placeholder={placeholder}
           className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 pr-12 text-slate-900 outline-none transition focus:border-slate-500 focus:bg-white focus:ring-2 focus:ring-slate-200"
+          {...(disableBrowserSuggestions
+            ? NO_BROWSER_AUTOFILL_PROPS
+            : { autoComplete })}
         />
         <button
           type="button"
