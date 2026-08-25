@@ -549,10 +549,11 @@ export class SupabaseProductRepository implements ProductRepository {
           cust_id,
           harga,
           mata_uang,
-          Admin_Ely_Customer ( cust_name )
+          Admin_Ely_Customer!inner ( cust_name )
         `
         )
-        .eq("product_id", productId);
+        .eq("product_id", productId)
+        .eq("Admin_Ely_Customer.status_customer", CUSTOMER_STATUS_ACTIVE);
 
       if (hargaError) {
         return { success: false, error: hargaError.message };
