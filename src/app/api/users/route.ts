@@ -55,7 +55,7 @@ export async function POST(request: Request) {
 }
 
 /**
- * Endpoint server-side untuk menghapus user karyawan.
+ * Endpoint server-side untuk soft delete user karyawan (status Inactive).
  */
 export async function DELETE(request: Request) {
   try {

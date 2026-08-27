@@ -64,7 +64,7 @@ export default function DeleteUserList() {
   }
 
   /**
-   * Menghapus user karyawan setelah konfirmasi.
+   * Menonaktifkan user karyawan setelah konfirmasi.
    */
   async function handleConfirmDelete() {
     if (!selectedUser) {
@@ -140,7 +140,7 @@ export default function DeleteUserList() {
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
           <h2 className="text-xl font-semibold text-slate-900">Delete User</h2>
           <p className="mt-2 text-sm text-slate-600">
-            Daftar user dengan role karyawan yang dapat dihapus dari sistem.
+            Daftar user karyawan aktif yang dapat dinonaktifkan dari sistem.
           </p>
 
           <div className="mt-6 overflow-x-auto rounded-xl border border-slate-200">
@@ -208,7 +208,7 @@ export default function DeleteUserList() {
         visible={showConfirmDialog}
         message={
           selectedUser
-            ? `Apakah Anda yakin akan menghapus User bernama ${toTitleCase(selectedUser.name)}?`
+            ? `Apakah Anda yakin akan menonaktifkan user bernama ${toTitleCase(selectedUser.name)}?`
             : ""
         }
         onClose={handleCloseConfirm}
@@ -218,14 +218,14 @@ export default function DeleteUserList() {
       <ResultDialog
         visible={resultVariant === "success"}
         variant="success"
-        message="Akun berhasil di hapus."
+        message="Akun berhasil dinonaktifkan."
         onClose={handleCloseResult}
       />
 
       <ResultDialog
         visible={resultVariant === "error"}
         variant="error"
-        message="Akun gagal di hapus."
+        message="Akun gagal dinonaktifkan."
         onClose={handleCloseResult}
       />
 

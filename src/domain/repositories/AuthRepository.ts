@@ -28,7 +28,7 @@ export interface AuthRepository {
   listNonAdminUsers(): Promise<ListNonAdminUsersResult>;
 
   /**
-   * Menghapus user karyawan berdasarkan name dan username.
+   * Menandai user karyawan sebagai Inactive berdasarkan name dan username.
    */
   deleteUser(input: DeleteUserInput): Promise<DeleteUserResult>;
 }

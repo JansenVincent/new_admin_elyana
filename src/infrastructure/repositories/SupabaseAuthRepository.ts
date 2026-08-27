@@ -12,7 +12,7 @@ import type {
 } from "@/domain/entities/AdminUser";
 import { getSupabaseServerClient } from "@/infrastructure/supabase/serverClient";
 import { ADMIN_ROLE, DEFAULT_USER_ROLE } from "@/shared/constants/account";
-import { ADMIN_LOGIN_TABLE } from "@/shared/constants/auth";
+import { ADMIN_LOGIN_TABLE, USER_STATUS_ACTIVE, USER_STATUS_INACTIVE } from "@/shared/constants/auth";
 import { toTitleCase } from "@/shared/utils/stringFormat";
 import {
   hashPassword,
@@ -51,6 +51,7 @@ export class SupabaseAuthRepository implements AuthRepository {
         .from(ADMIN_LOGIN_TABLE)
         .select("*")
         .eq("username", username)
+        .eq("status_user", USER_STATUS_ACTIVE)
         .maybeSingle();
 
       if (error) {
@@ -205,6 +206,7 @@ export class SupabaseAuthRepository implements AuthRepository {
         .from(ADMIN_LOGIN_TABLE)
         .select("user_id, name, username")
         .neq("role", ADMIN_ROLE)
+        .eq("status_user", USER_STATUS_ACTIVE)
         .order("name", { ascending: true });
 
       if (error) {
@@ -240,7 +242,7 @@ export class SupabaseAuthRepository implements AuthRepository {
   }
 
   /**
-   * Menghapus user karyawan berdasarkan name dan username.
+   * Menandai user karyawan sebagai Inactive (soft delete) berdasarkan name dan username.
    */
   async deleteUser(input: DeleteUserInput): Promise<DeleteUserResult> {
     try {
@@ -248,10 +250,11 @@ export class SupabaseAuthRepository implements AuthRepository {
 
       const { data, error } = await supabase
         .from(ADMIN_LOGIN_TABLE)
-        .delete()
+        .update({ status_user: USER_STATUS_INACTIVE })
         .eq("name", input.name.trim())
         .eq("username", input.username.trim())
         .eq("role", DEFAULT_USER_ROLE)
+        .eq("status_user", USER_STATUS_ACTIVE)
         .select("user_id")
         .maybeSingle();
 

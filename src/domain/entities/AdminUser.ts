@@ -65,7 +65,7 @@ export interface ListNonAdminUsersResult {
 }
 
 /**
- * Data input untuk menghapus user karyawan.
+ * Data input untuk soft delete user karyawan.
  */
 export interface DeleteUserInput {
   name: string;
@@ -73,7 +73,7 @@ export interface DeleteUserInput {
 }
 
 /**
- * Hasil operasi penghapusan user.
+ * Hasil operasi soft delete user.
  */
 export interface DeleteUserResult {
   success: boolean;

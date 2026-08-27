@@ -54,7 +54,7 @@ export class AuthService {
   }
 
   /**
-   * Menghapus user karyawan melalui API server-side.
+   * Menandai user karyawan sebagai Inactive melalui API server-side.
    */
   async deleteUser(input: DeleteUserInput): Promise<DeleteUserResult> {
     const response = await fetch("/api/users", {
