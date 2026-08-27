@@ -73,7 +73,7 @@ export interface ProductRepository {
   ): Promise<AddProductHargaResult>;
 
   /**
-   * Menghapus product beserta seluruh data terkait berdasarkan slug_id.
+   * Menandai product sebagai Not Available (soft delete) berdasarkan slug_id.
    */
   deleteProductBySlug(slugId: string): Promise<DeleteProductResult>;
 }

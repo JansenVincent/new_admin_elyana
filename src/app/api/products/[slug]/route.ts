@@ -35,7 +35,7 @@ export async function GET(
 }
 
 /**
- * Endpoint server-side untuk menghapus product beserta seluruh data terkait.
+ * Endpoint server-side untuk soft delete product (status Not Available).
  */
 export async function DELETE(
   _request: Request,

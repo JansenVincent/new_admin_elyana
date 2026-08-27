@@ -1,4 +1,4 @@
-/** Hasil operasi penghapusan product beserta seluruh data terkait. */
+/** Hasil operasi soft delete product dari My Product. */
 export interface DeleteProductResult {
   success: boolean;
   error?: string;

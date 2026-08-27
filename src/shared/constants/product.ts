@@ -19,6 +19,12 @@ export const PRODUCT_BARCODE_BUCKET = "product-barcode-images";
 /** Jumlah baris product per halaman pada My Product. */
 export const MY_PRODUCT_PAGE_SIZE = 10;
 
+/** Status product tersedia pada My Product. */
+export const PRODUCT_STATUS_AVAILABLE = "Available";
+
+/** Status product tidak tersedia (soft delete dari My Product). */
+export const PRODUCT_STATUS_NOT_AVAILABLE = "Not Available";
+
 /** Panjang maksimum catatan edit kuantitas My Product. */
 export const MAX_EDIT_KUANTITAS_CATATAN_LENGTH = 200;
 

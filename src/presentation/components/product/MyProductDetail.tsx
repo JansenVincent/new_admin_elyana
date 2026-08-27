@@ -124,7 +124,7 @@ export default function MyProductDetailView({
   }
 
   /**
-   * Menghapus product beserta seluruh data terkait setelah konfirmasi.
+   * Menandai product sebagai Not Available setelah konfirmasi.
    */
   async function handleConfirmDeleteProduct() {
     if (!product) {
@@ -456,8 +456,8 @@ export default function MyProductDetailView({
 
       <ConfirmDialog
         visible={showDeleteConfirm}
-        message={`Apakah Anda yakin akan menghapus seluruh data terkait produk ${toTitleCase(product.nama_barang)}?`}
-        note="Catatan: Data produk yang sudah di hapus tidak akan bisa di kembalikan."
+        message={`Apakah Anda yakin akan menghapus produk ${toTitleCase(product.nama_barang)} dari My Product?`}
+        note="Catatan: Produk akan disembunyikan dari My Product. Data historis tetap tersimpan di database."
         onClose={() => setShowDeleteConfirm(false)}
         onConfirm={handleConfirmDeleteProduct}
         isLoading={isDeleting}

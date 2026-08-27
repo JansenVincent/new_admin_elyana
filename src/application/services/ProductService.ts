@@ -192,7 +192,7 @@ export class ProductService {
   }
 
   /**
-   * Menghapus product beserta seluruh data terkait melalui API My Product.
+   * Menandai product sebagai Not Available (soft delete) melalui API My Product.
    */
   async deleteProduct(slugId: string): Promise<DeleteProductResult> {
     const response = await fetch(
