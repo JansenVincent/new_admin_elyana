@@ -30,6 +30,7 @@ import {
   hasNoSuratJalanErrors,
   toDocumentUpperCase,
   formatSuratJalanProductLabel,
+  formatSuratJalanTokoSummary,
   validateSuratJalanStep1,
   validateSuratJalanStep2,
   type SuratJalanStep1FieldName,
@@ -885,8 +886,13 @@ export default function SuratJalanForm() {
                     </div>
                     <div>
                       <dt className="text-xs text-slate-500">Nama Toko</dt>
-                      <dd className="text-sm font-medium text-slate-900">
-                        {selectedToko ? toTitleCase(selectedToko.nama_toko) : "-"}
+                      <dd className="whitespace-pre-line text-sm font-medium text-slate-900">
+                        {selectedToko
+                          ? formatSuratJalanTokoSummary(
+                              selectedToko,
+                              selectedPemilik?.nomor_whatsapp
+                            )
+                          : "-"}
                       </dd>
                     </div>
                     <div className="sm:col-span-2">

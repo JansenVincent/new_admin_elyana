@@ -4,6 +4,7 @@ import {
   MAX_PENGIRIMAN_LENGTH,
 } from "@/shared/constants/suratJalan";
 import { getTodayWibDateInputValue } from "@/shared/utils/timestamp";
+import { toTitleCase } from "@/shared/utils/stringFormat";
 
 /**
  * Memeriksa apakah string tidak kosong setelah di-trim.
@@ -139,4 +140,28 @@ export function formatSuratJalanProductLabel(
   ].filter(Boolean);
 
   return parts.join(" ").toUpperCase();
+}
+
+/** Data toko yang diperlukan untuk ringkasan Step 3 Surat Jalan. */
+export interface SuratJalanTokoSummaryInput {
+  nama_toko: string;
+  keterangan_toko: string | null;
+  alamat_toko: string;
+}
+
+/**
+ * Memformat blok Nama Toko pada ringkasan Surat Jalan (multi-baris).
+ */
+export function formatSuratJalanTokoSummary(
+  toko: SuratJalanTokoSummaryInput,
+  nomorWhatsapp: string | null | undefined
+): string {
+  const whatsapp = nomorWhatsapp?.trim();
+
+  return [
+    toTitleCase(toko.nama_toko),
+    toko.keterangan_toko?.trim() ?? "",
+    toko.alamat_toko.trim(),
+    whatsapp ? `Telp. ${whatsapp}` : "Telp. -",
+  ].join("\n");
 }

@@ -10,12 +10,15 @@ export interface SuratJalanCustomerOption {
 export interface SuratJalanTokoOption {
   toko_id: string;
   nama_toko: string;
+  keterangan_toko: string | null;
+  alamat_toko: string;
 }
 
 /** Opsi pemilik untuk form Surat Jalan. */
 export interface SuratJalanPemilikOption {
   pemilik_id: string;
   nama_pemilik: string;
+  nomor_whatsapp: string | null;
 }
 
 /** Product tersedia untuk form Surat Jalan step Detail Barang. */

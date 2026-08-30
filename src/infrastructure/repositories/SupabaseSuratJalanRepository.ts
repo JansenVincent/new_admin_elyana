@@ -59,11 +59,11 @@ export class SupabaseSuratJalanRepository implements SuratJalanRepository {
             .order("cust_name", { ascending: true }),
           supabase
             .from(TOKO_TABLE)
-            .select("toko_id, nama_toko")
+            .select("toko_id, nama_toko, keterangan_toko, alamat_toko")
             .order("nama_toko", { ascending: true }),
           supabase
             .from(PEMILIK_TABLE)
-            .select("pemilik_id, nama_pemilik")
+            .select("pemilik_id, nama_pemilik, nomor_whatsapp")
             .order("nama_pemilik", { ascending: true }),
           supabase
             .from(PRODUCT_TABLE)
@@ -104,12 +104,17 @@ export class SupabaseSuratJalanRepository implements SuratJalanRepository {
       const tokos: SuratJalanTokoOption[] = (tokoResult.data ?? []).map((row) => ({
         toko_id: String(row.toko_id),
         nama_toko: String(row.nama_toko ?? ""),
+        keterangan_toko:
+          row.keterangan_toko != null ? String(row.keterangan_toko) : null,
+        alamat_toko: String(row.alamat_toko ?? ""),
       }));
 
       const pemiliks: SuratJalanPemilikOption[] = (pemilikResult.data ?? []).map(
         (row) => ({
           pemilik_id: String(row.pemilik_id),
           nama_pemilik: String(row.nama_pemilik ?? ""),
+          nomor_whatsapp:
+            row.nomor_whatsapp != null ? String(row.nomor_whatsapp) : null,
         })
       );
 
