@@ -242,7 +242,6 @@ export class SupabaseSuratJalanRepository implements SuratJalanRepository {
         }
 
         const hargaId = String(hargaRow.harga_id);
-        let detailId = "";
 
         try {
           const { data: detailData, error: detailError } = await supabase
@@ -260,8 +259,7 @@ export class SupabaseSuratJalanRepository implements SuratJalanRepository {
             throw new Error(detailError?.message ?? "insert detail failed");
           }
 
-          detailId = String(detailData.jual_detail_id);
-          insertState.detailIds.push(detailId);
+          insertState.detailIds.push(String(detailData.jual_detail_id));
         } catch {
           await this.rollbackSuratJalan(insertState);
           return { success: false, error: SURAT_JALAN_SAVE_ERROR_MESSAGE };
@@ -316,16 +314,8 @@ export class SupabaseSuratJalanRepository implements SuratJalanRepository {
         po_id: insertState.poId,
         sj_id: insertState.sjId,
       };
-    } catch (err) {
+    } catch {
       await this.rollbackSuratJalan(insertState);
-
-      if (err instanceof Error && err.message === SURAT_JALAN_HARGA_NOT_FOUND_MESSAGE) {
-        return {
-          success: false,
-          error: SURAT_JALAN_HARGA_NOT_FOUND_MESSAGE,
-        };
-      }
-
       return { success: false, error: SURAT_JALAN_SAVE_ERROR_MESSAGE };
     }
   }

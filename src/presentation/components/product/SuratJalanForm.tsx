@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { suratJalanService } from "@/application/services/SuratJalanService";
 import type {
@@ -99,6 +99,7 @@ export default function SuratJalanForm() {
     []
   );
   const [isValidatingHarga, setIsValidatingHarga] = useState(false);
+  const prevCustTokoRef = useRef({ custId: "", tokoId: "" });
 
   const {
     handleFieldBlur,
@@ -170,6 +171,40 @@ export default function SuratJalanForm() {
   }, [fetchOptions]);
 
   /**
+   * Mereset data Step 2 dan Step 3 serta mengunci navigasi lanjutan.
+   */
+  function resetDownstreamSteps() {
+    setLineItems([]);
+    setDraftProductId("");
+    setDraftKuantitas("1");
+    setDraftError(undefined);
+    setShowHargaWarning(false);
+    setHargaWarningProducts([]);
+    setMaxStepReached(1);
+  }
+
+  /**
+   * Mengunci akses Step 3 setelah daftar product di Step 2 diubah.
+   */
+  function invalidateStep3Access() {
+    setMaxStepReached((prev) => (prev >= 3 ? 2 : prev));
+    setShowHargaWarning(false);
+    setHargaWarningProducts([]);
+  }
+
+  useEffect(() => {
+    const previous = prevCustTokoRef.current;
+    const custChanged = previous.custId !== "" && previous.custId !== custId;
+    const tokoChanged = previous.tokoId !== "" && previous.tokoId !== tokoId;
+
+    if (custChanged || tokoChanged) {
+      resetDownstreamSteps();
+    }
+
+    prevCustTokoRef.current = { custId, tokoId };
+  }, [custId, tokoId]);
+
+  /**
    * Menangani blur field step 1 dengan validasi langsung.
    */
   function handleStep1FieldBlur(
@@ -193,11 +228,20 @@ export default function SuratJalanForm() {
   }
 
   /**
-   * Berpindah ke step yang dipilih pengguna tanpa menghapus data sebelumnya.
+   * Berpindah ke step yang sudah pernah dicapai tanpa menghapus data.
    */
   function goToStep(step: number) {
     if (step <= maxStepReached) {
       setCurrentStep(step);
+    }
+  }
+
+  /**
+   * Kembali ke step sebelumnya tanpa mereset data Step 2 dan 3.
+   */
+  function handleBackStep() {
+    if (currentStep > 1) {
+      setCurrentStep((step) => step - 1);
     }
   }
 
@@ -293,13 +337,13 @@ export default function SuratJalanForm() {
         kuantitas_beli: cappedKuantitas,
         satuan_kuantitas: draftProduct.satuan_kuantitas,
         keterangan: draftProduct.keterangan,
-        max_kuantitas: draftProduct.kuantitas,
       },
     ]);
 
     setDraftProductId("");
     setDraftKuantitas("1");
     setDraftError(undefined);
+    invalidateStep3Access();
   }
 
   /**
@@ -307,6 +351,7 @@ export default function SuratJalanForm() {
    */
   function handleRemoveLineItem(rowKey: string) {
     setLineItems((prev) => prev.filter((item) => item.rowKey !== rowKey));
+    invalidateStep3Access();
   }
 
   /**
@@ -314,7 +359,6 @@ export default function SuratJalanForm() {
    */
   function resetForm() {
     setCurrentStep(1);
-    setMaxStepReached(1);
     setNomorPo("");
     setPengiriman("");
     setTanggalSj(getTodayWibDateInputValue());
@@ -322,10 +366,8 @@ export default function SuratJalanForm() {
     setCustId("");
     setTokoId("");
     setPemilikId("");
-    setLineItems([]);
-    setDraftProductId("");
-    setDraftKuantitas("1");
-    setDraftError(undefined);
+    prevCustTokoRef.current = { custId: "", tokoId: "" };
+    resetDownstreamSteps();
     resetValidation();
     setShowSuccess(false);
     fetchOptions();
@@ -899,7 +941,7 @@ export default function SuratJalanForm() {
             {currentStep > 1 ? (
               <button
                 type="button"
-                onClick={() => setCurrentStep((step) => step - 1)}
+                onClick={handleBackStep}
                 className="rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
               >
                 Kembali

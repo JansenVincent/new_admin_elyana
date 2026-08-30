@@ -33,7 +33,6 @@ export interface SuratJalanLineItem {
   kuantitas_beli: number;
   satuan_kuantitas: string;
   keterangan: string | null;
-  max_kuantitas: number;
 }
 
 /** Hasil pengambilan opsi dropdown Surat Jalan. */
