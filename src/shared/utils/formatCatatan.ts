@@ -91,6 +91,19 @@ export function buildHistoriEditHargaMyProductCatatan(
 }
 
 /**
+ * Membuat catatan histori keluar product dari menu Surat Jalan.
+ */
+export function buildHistoriKeluarSuratJalanCatatan(
+  username: string,
+  name: string,
+  nomorSuratJalan: string,
+  date: Date = new Date()
+): string {
+  const timestamp = formatWibDateTimeForCatatan(date);
+  return `Data diupdate pada tanggal ${timestamp} melalui Surat Jalan oleh ${username}-${name}, dengan nomor surat jalan '${nomorSuratJalan.trim()}'.`;
+}
+
+/**
  * Membuat catatan histori perubahan kuantitas dari My Product.
  */
 export function buildHistoriEditKuantitasCatatan(

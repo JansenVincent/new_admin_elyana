@@ -36,6 +36,7 @@ import {
   validateStep3,
   type Step1FieldName,
 } from "@/shared/utils/inputBarangValidation";
+import { toTitleCase } from "@/shared/utils/stringFormat";
 import { getTodayWibDateInputValue } from "@/shared/utils/timestamp";
 
 const FORM_STEPS = [
@@ -643,7 +644,9 @@ export default function InputStockForm() {
                     id="namaBarang"
                     type="text"
                     value={namaBarang}
-                    onChange={(event) => setNamaBarang(event.target.value)}
+                    onChange={(event) =>
+                      setNamaBarang(event.target.value.toUpperCase())
+                    }
                     onBlur={() => handleStep1FieldBlur("namaBarang")}
                     placeholder="Masukkan nama barang"
                     className={inputClassName}
@@ -725,7 +728,9 @@ export default function InputStockForm() {
                     id="satuanBarang"
                     type="text"
                     value={satuanBarang}
-                    onChange={(event) => setSatuanBarang(event.target.value)}
+                    onChange={(event) =>
+                      setSatuanBarang(toTitleCase(event.target.value))
+                    }
                     onBlur={() => handleStep1FieldBlur("satuanBarang")}
                     placeholder="Contoh: Pcs, Set"
                     maxLength={MAX_SATUAN_BARANG_LENGTH}
