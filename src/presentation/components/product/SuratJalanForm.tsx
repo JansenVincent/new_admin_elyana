@@ -1049,7 +1049,7 @@ export default function SuratJalanForm() {
                 onClick={resetForm}
                 className="mt-6 w-full rounded-xl bg-slate-900 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
-                Surat Jalan Baru
+                Buat Surat Jalan Baru
               </button>
             </div>
           </div>
