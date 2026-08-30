@@ -54,7 +54,7 @@ export class SupabaseSuratJalanRepository implements SuratJalanRepository {
         await Promise.all([
           supabase
             .from(CUSTOMER_TABLE)
-            .select("cust_id, cust_name")
+            .select("cust_id, cust_name, front_code, back_code")
             .eq("status_customer", CUSTOMER_STATUS_ACTIVE)
             .order("cust_name", { ascending: true }),
           supabase
@@ -96,6 +96,8 @@ export class SupabaseSuratJalanRepository implements SuratJalanRepository {
         (row) => ({
           cust_id: String(row.cust_id),
           cust_name: String(row.cust_name ?? ""),
+          front_code: String(row.front_code ?? ""),
+          back_code: String(row.back_code ?? ""),
         })
       );
 

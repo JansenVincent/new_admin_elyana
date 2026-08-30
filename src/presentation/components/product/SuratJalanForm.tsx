@@ -29,6 +29,7 @@ import {
   getSuratJalanStep1FieldError,
   hasNoSuratJalanErrors,
   toDocumentUpperCase,
+  formatSuratJalanProductLabel,
   validateSuratJalanStep1,
   validateSuratJalanStep2,
   type SuratJalanStep1FieldName,
@@ -917,8 +918,14 @@ export default function SuratJalanForm() {
                     <tbody className="divide-y divide-slate-200 bg-white">
                       {lineItems.map((item) => (
                         <tr key={item.rowKey}>
-                          <td className="px-4 py-3 text-sm text-slate-900">
-                            {toTitleCase(item.nama_barang)}
+                          <td className="px-4 py-3 text-sm uppercase text-slate-900">
+                            {selectedCustomer
+                              ? formatSuratJalanProductLabel(
+                                  selectedCustomer.front_code,
+                                  item.nama_barang,
+                                  selectedCustomer.back_code
+                                )
+                              : toDocumentUpperCase(item.nama_barang)}
                           </td>
                           <td className="px-4 py-3 text-sm text-slate-700">
                             {item.kuantitas_beli} {item.satuan_kuantitas}

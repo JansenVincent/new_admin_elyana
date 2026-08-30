@@ -2,6 +2,8 @@
 export interface SuratJalanCustomerOption {
   cust_id: string;
   cust_name: string;
+  front_code: string;
+  back_code: string;
 }
 
 /** Opsi toko untuk form Surat Jalan. */

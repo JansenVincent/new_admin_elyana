@@ -123,3 +123,20 @@ export function hasNoSuratJalanErrors(errors: Record<string, string>): boolean {
 export function toDocumentUpperCase(value: string): string {
   return value.toUpperCase();
 }
+
+/**
+ * Memformat label product ringkasan Surat Jalan: FRONT_CODE NAMA_PRODUCT BACK_CODE (uppercase).
+ */
+export function formatSuratJalanProductLabel(
+  frontCode: string,
+  productName: string,
+  backCode: string
+): string {
+  const parts = [
+    frontCode.trim(),
+    productName.trim(),
+    backCode.trim(),
+  ].filter(Boolean);
+
+  return parts.join(" ").toUpperCase();
+}
